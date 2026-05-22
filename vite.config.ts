@@ -14,6 +14,7 @@ export default defineConfig({
     lib: {
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
+        'libs/createContextState': resolve(__dirname, 'src/libs/createContextState.tsx'),
         'libs/createStateManager': resolve(__dirname, 'src/libs/createStateManager.tsx'),
         'libs/createTranslator': resolve(__dirname, 'src/libs/createTranslator.ts'),
         'libs/createEventMethod': resolve(__dirname, 'src/libs/createEventMethod.ts'),

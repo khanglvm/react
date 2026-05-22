@@ -1,6 +1,6 @@
 {
   "name": "@lvmk/react",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "React hooks and utility functions",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,6 +14,10 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./createContextState": {
+      "import": "./dist/libs/createContextState.js",
+      "types": "./dist/libs/createContextState.d.ts"
     },
     "./createStateManager": {
       "import": "./dist/libs/createStateManager.js",

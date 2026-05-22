@@ -22,7 +22,7 @@ Type-safe event system for cross-component communication with async support.
 ## 🗃 State Management
 
 ```tsx
-import { createStateManager } from '@lvmk/react'
+import { createContextState } from '@lvmk/react'
 
 /**
  * app-state.ts
@@ -38,10 +38,10 @@ export interface TodoState {
 // 2. Create, rename and expose state managment functions
 export const { 
   Provider, 
-  useState: useTodoState,
-  useStateValue: useTodoStateValue,
-  useSnapshot: useTodoSnapshot,
-} = createStateManager<TodoState>()
+  useContextState: useTodoState,
+  useContextStateValue: useTodoStateValue,
+  useStateSnapshotGetter: useTodoSnapshot,
+} = createContextState<TodoState>()
 
 /** 
  * App.tsx
@@ -240,7 +240,7 @@ export const {useTranslator} = createTranslatorHook({
   translation: WELCOME_SCREEN_TRANLSATION,
   usePreferredLanguage: () => {
     // provide current language from your preferred state management
-    return useStateValue(state => state.language)
+    return useContextStateValue(state => state.language)
   }
 })
 
@@ -416,9 +416,11 @@ useEventListener('processPayment', async (amount, signal) => {
 
 ## API Reference
 
-### createStateManager\<State\>(instanceId?: string)
+### createContextState\<State\>(instanceId?: string)
 
 Creates a type-safe state management system with fine-grained rendering and SSR support.
+
+`createStateManager` is still exported as a backward-compatible wrapper for the older hook names.
 
 **Parameters:**
 - `instanceId` (optional): Unique identifier for the state manager instance. Useful for debugging purpose or when you have multiple state managers in the same app.
@@ -438,7 +440,7 @@ React component that provides state context to child components.
 - `initialState` (optional): Initial state values for server-side rendering or component initialization
 - `children`: React components that will have access to the state
 
-> ####  useState\<ComputedValue\>(compute)
+> ####  useContextState\<ComputedValue\>(compute, enableRevert?)
 
 Primary hook for accessing and updating state with computed values.
 
@@ -446,10 +448,10 @@ Primary hook for accessing and updating state with computed values.
 
 ```tsx
 // ✅ RECOMMENDED: Access specific/customized state slices
-const [todoCount, setState, getSnapshot] = useState(state => state.todos.length)
+const [todoCount, setState, getSnapshot] = useContextState(state => state.todos.length)
 
 // ⚠️ USE WITH CAUTION: Access entire state (causes re-renders for all state changes)
-const [state, setState, getSnapshot] = useState(state => state)
+const [state, setState, getSnapshot] = useContextState(state => state)
 ```
 
 **Parameters:**
@@ -469,13 +471,13 @@ setState(draft => {
 ```
 - `[2] getSnapshot`: Function to get current state snapshot without subscribing
 
-> #### useStateValue\<ComputedValue\>(compute)
+> #### useContextStateValue\<ComputedValue\>(compute)
 
-Read-only hook for accessing state with computed values. More performant than `useState` when you don't need to update state.
+Read-only hook for accessing state with computed values. More performant than `useContextState` when you don't need to update state.
 
 ```tsx
 // ✅ RECOMMENDED: Access specific computed values
-const todoCount = useStateValue(state => state.todos.filter(t => !t.done).length)
+const todoCount = useContextStateValue(state => state.todos.filter(t => !t.done).length)
 ```
 
 **Parameters:**
@@ -483,13 +485,13 @@ const todoCount = useStateValue(state => state.todos.filter(t => !t.done).length
 
 **Returns:** Current state or computed value from selector
 
-> #### useSetState()
+> #### useSetContextState(enableRevert?)
 
 Write-only hook that provides only state update functionality. Useful for components that only need to modify state without re-rendering on state changes.
 
 ```tsx
 function AddTodoButton() {
-  const setState = useSetState()
+  const setState = useSetContextState()
   
   const addTodo = () => {
     setState(draft => {
@@ -501,15 +503,15 @@ function AddTodoButton() {
 }
 ```
 
-**Returns:** setState function (same as from `useState`)
+**Returns:** setState function (same as from `useContextState`)
 
-> #### useSnapshot()
+> #### useStateSnapshotGetter()
 
 Hook for synchronous state snapshot access without subscribing to changes. Useful for imperative state access in event handlers or effects.
 
 ```tsx
 function MyComponent() {
-  const getSnapshot = useSnapshot()
+  const getSnapshot = useStateSnapshotGetter()
   
   const handleClick = () => {
     // ✅ RECOMMENDED: Get specific state slice without subscribing
@@ -524,7 +526,7 @@ function MyComponent() {
 **Returns:** Function to get state snapshots with optional computation:
 - `getSnapshot(compute?)`: Returns computed value from current state
 
-> #### withProvider\<ComponentProps\>(component, config?)
+> #### withContextProvider\<ComponentProps\>(component, config?)
 
 Higher-Order Component that automatically wraps components with the state Provider and provides state-binding configuration.
 
@@ -541,11 +543,11 @@ interface SearchBarProps {
   theme?: 'light' | 'dark'
 }
 
-const SearchBar = withProvider<SearchBarState>(
+const SearchBar = withContextProvider<SearchBarState>(
   // Actual inlined SearchBar component
   (props: SearchBarProps) => {
     
-    const [state, setState] = useState(state => ({
+    const [state, setState] = useContextState(state => ({
       theme: state.theme,
       isSearching: state.isSearching,
       keyword: state.keyword
