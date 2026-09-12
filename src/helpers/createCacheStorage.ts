@@ -1,4 +1,4 @@
-import { deepEqual } from './deepEqual';
+import { deepEqual } from './deepEqual.js';
 export const createCacheStorage = (id?: (symbol | string)) => {
     const storage = new Map();
 

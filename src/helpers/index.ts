@@ -1,12 +1,12 @@
 /**
- * Helper utilities and types for @lvmk/react
+ * Helper utilities and types for @khanglvm/react
  */
 
 // Type utilities
-export * from './types'
+export * from './types.js'
 
 // Utility functions
-export * from './deepClone'
-export * from './deepEqual'
-export * from './createCacheStorage'
-export * from './react'
+export * from './deepClone.js'
+export * from './deepEqual.js'
+export * from './createCacheStorage.js'
+export * from './react.js'

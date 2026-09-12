@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md)
 
-Import these through `@lvmk/react/helpers`; they are not exported from the package root.
+Import these through `@khanglvm/react/helpers`; they are not exported from the package root.
 
 ## Copying, comparison, and caching
 
@@ -11,7 +11,7 @@ Import these through `@lvmk/react/helpers`; they are not exported from the packa
 Use this when copying a nested value with the same rules used by the state utility. It handles cycles, arrays, plain objects, Date, RegExp, Map, Set, and ArrayBuffer. Functions, AbortSignal, and FormData are retained by reference. An optional WeakMap tracks copies during recursion.
 
 ```ts
-import { deepClone } from '@lvmk/react/helpers'
+import { deepClone } from '@khanglvm/react/helpers'
 
 const original = { tags: ['react'], createdAt: new Date('2026-01-01') }
 const copy = deepClone(original)
@@ -22,22 +22,24 @@ An object spread only copies one level; this function descends into nested data.
 
 ### deepEqual(a, b)
 
-Use this for value comparison of acyclic plain objects and arrays when reference equality is insufficient. It also compares Date timestamps, RegExp strings, constructors, and NaN; React element `_owner` fields are skipped.
+Use this for value comparison of acyclic objects, arrays, Maps, and Sets when reference equality is insufficient. It also compares Date timestamps, RegExp strings, constructors, and NaN; React element `_owner` fields are skipped.
 
 ```ts
-import { deepEqual } from '@lvmk/react/helpers'
+import { deepEqual } from '@khanglvm/react/helpers'
 
 deepEqual({ tags: ['react'] }, { tags: ['react'] }) // true
 ```
 
-It does not compare Map or Set entries and has no cycle detection. Different Maps or Sets can compare equal. Symbol and non-enumerable properties are not included. Use a comparator designed for those types when they are part of your data.
+Maps compare their size, keys, and values. Keys use native Map identity, and values are compared recursively. Sets compare size and membership using native Set identity. Insertion order does not matter. Object keys and Set members must be the same references; matching object contents alone are insufficient.
+
+There is no cycle detection. Symbol and non-enumerable properties are not included. Use a comparator designed for those cases when they are part of your data.
 
 ### createCacheStorage(id?)
 
 Use this to retain the previous reference for an equivalent value, keyed by a cache entry and optional group path. Unlike a one-time memoized calculation, callers provide the newly computed value; the cache compares it with the previous one.
 
 ```ts
-import { createCacheStorage } from '@lvmk/react/helpers'
+import { createCacheStorage } from '@khanglvm/react/helpers'
 
 const { cache, clear, uid } = createCacheStorage()
 const group = uid()
@@ -57,7 +59,7 @@ There is no whole-cache clear: `clear()` with no keys does nothing. Supplying a 
 
 ```tsx
 import { memo } from 'react'
-import { comparePropsForMemo } from '@lvmk/react/helpers'
+import { comparePropsForMemo } from '@khanglvm/react/helpers'
 
 type LabelProps = { label: string }
 export const Label = memo(
@@ -68,7 +70,7 @@ export const Label = memo(
 
 For all existing keys, `memo(Component, compareAllPropsForMemo)` is the companion shorthand; note the added-prop limitation below.
 
-These save writing a custom comparator when bounded nested props need value comparison. Default `memo` is usually the simpler starting point. Include every prop that affects output or behavior, including callbacks; an ignored callback can retain stale data. `compareAllPropsForMemo` can miss a newly added prop because it only visits the previous keys. Both inherit the Map/Set and cycle limitations of `deepEqual`.
+These save writing a custom comparator when bounded nested props need value comparison. Default `memo` is usually the simpler starting point. Include every prop that affects output or behavior, including callbacks; an ignored callback can retain stale data. `compareAllPropsForMemo` can miss a newly added prop because it only visits the previous keys. Both follow the collection identity rules of `deepEqual` and do not support cyclic values.
 
 React's [memo documentation](https://react.dev/reference/react/memo#specifying-a-custom-comparison-function) explains custom comparator costs and the need to compare function props. These helpers do not promise a faster render.
 
@@ -82,7 +84,7 @@ import {
   isPrimitiveChildren,
   isReactFragmentChildren,
   filterComponentFromChildren,
-} from '@lvmk/react/helpers'
+} from '@khanglvm/react/helpers'
 
 isEmptyChildren(null) // true
 isPrimitiveChildren('Hello') // true

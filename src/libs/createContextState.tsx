@@ -1,17 +1,8 @@
+'use client'
+
 /**
- * @author Khang Le
- * @version 2.0
- * 
- * @fileoverview Advanced React Context State Management Utility
- *
- * Creates a type-safe, performance-optimized context state management system with:
- * - Immer-powered immutable state updates
- * - Memoization and caching for performance
- * - Pure function validation for predictable renders
- * - SSR support with initial state hydration
- * - Provider HOC pattern for easy component wrapping
- *
- * @see createContextState.doc.md for more usage examples and documentation
+ * React context state with Immer updates and selective subscriptions.
+ * Each Provider owns its state. Synchronous updates notify subscribers in one microtask.
  */
 
 import {
@@ -30,10 +21,10 @@ import type {
   PropsWithoutRef
 } from 'react'
 // Dependencies
-import { comparePropsForMemo, createCacheStorage, deepClone } from '../helpers'
+import { comparePropsForMemo, createCacheStorage, deepClone } from '../helpers/index.js'
 import { applyPatches, produce, produceWithPatches } from 'immer'
 import type { Draft } from 'immer'
-import type { TDeepMutable, TDeepReadonly } from '../helpers'
+import type { TDeepMutable, TDeepReadonly } from '../helpers/index.js'
 import { enableMapSet, enablePatches } from 'immer'
 
 // Enable Immer features for advanced state management
@@ -147,7 +138,7 @@ export function createContextState<State extends Record<string | number, unknown
   /** Function signature for getting state snapshots with optional computation */
   type TStateSnapshotGetter = {
     <ComputedSnapshotValue>(compute: (input: State) => ComputedSnapshotValue): ComputedSnapshotValue
-    (): State
+    (compute?: undefined): State
   }
 
   /** Function signature for updating state (accepts partial state or Immer draft function) */
@@ -224,25 +215,6 @@ export function createContextState<State extends Record<string | number, unknown
   }
 
   /**
-   * Sets initial state value for SSR hydration or component initialization
-   *
-   * @param initialStateValue - Partial state to merge with existing state
-   *
-   * @example
-   * ```tsx
-   * // Server-side data hydration
-   * const { setInitialState } = createContextState<AppState>()
-   *
-   * // On server
-   * setInitialState({ user: await fetchUser(), settings: defaultSettings })
-   * ```
-   */
-  function setInitialState(initialStateValue: Partial<State>) {
-    // Directly assign to maintain object reference for React optimization
-    stateValue = initialStateValue as State
-  }
-
-  /**
    * Validates that compute functions are pure to prevent infinite render loops
    *
    * @param stateSnapshot - Current state to test against
@@ -303,11 +275,8 @@ export function createContextState<State extends Record<string | number, unknown
     emitChanges: () => void
     setPostFlush: (callback: (draft: Draft<State>) => void) => void
   } {
-    // Apply initial state if provided
-    if (initialState) setInitialState(initialState)
-
-    // Ref to hold current state value (prevents stale closures)
-    const stateRef = useRef(stateValue)
+    // Initial state belongs to this Provider and is read only on mount.
+    const stateRef = useRef((initialState ?? stateValue) as State)
 
     /**
      * Gets current state value with optional cloning for immutability
@@ -493,17 +462,18 @@ export function createContextState<State extends Record<string | number, unknown
    * @param context - State holder context containing current state
    * @returns Function that can get current state with optional computation
    */
-  function constructStateSnapshotGetter(context: ReturnType<typeof useStateHolderContext>) {
-    function getClonedStateSnapshot<ComputedSnapshotValue>(
-      compute = defaultComputeFunction<State, ComputedSnapshotValue>
-    ): typeof compute extends undefined ? TDeepReadonly<State> : ReturnType<typeof compute> {
-      // PERF: clone=false — Immer state is frozen/immutable after produce, safe for read-only access.
-      // Previously clone=true deep-cloned the ENTIRE state on every snapshot read.
+  function constructStateSnapshotGetter(context: ReturnType<typeof useStateHolderContext>): TStateSnapshotGetter {
+    function getStateSnapshot<ComputedSnapshotValue>(compute: (input: State) => ComputedSnapshotValue): ComputedSnapshotValue
+    function getStateSnapshot(compute?: undefined): State
+    function getStateSnapshot<ComputedSnapshotValue>(
+      compute?: (input: State) => ComputedSnapshotValue
+    ): State | ComputedSnapshotValue {
+      // Read the immutable store directly so selectors retain unchanged references.
       const currentState = context.getStateValue(false) as State
-      return compute(currentState)
+      return compute ? compute(currentState) : currentState
     }
 
-    return getClonedStateSnapshot
+    return getStateSnapshot
   }
 
   /**
@@ -545,7 +515,7 @@ export function createContextState<State extends Record<string | number, unknown
    *                       When false, setState uses Immer produce (no patch tracking) for better
    *                       performance and returns a no-op revert function.
    */
-  function useContextState<ComputedValue>(
+  function useContextState<ComputedValue = State>(
     compute: TComputeFunction<ComputedValue> = defaultComputeFunction<TDeepReadonly<State>, ComputedValue>,
     enableRevert: boolean = true
   ): [TDeepMutable<ComputedValue>, TStateSetter, TStateSnapshotGetter] {
@@ -559,7 +529,8 @@ export function createContextState<State extends Record<string | number, unknown
 
     // Cleanup cache when component unmounts
     useEffect(() => {
-      return clearCache(cacheId.current.stateInstance)
+      const id = cacheId.current.stateInstance
+      return () => clearCache(id)
     }, [])
 
     // Snapshot function for useSyncExternalStore
@@ -569,7 +540,7 @@ export function createContextState<State extends Record<string | number, unknown
 
     // Subscribe to state changes and get computed value
     const state = useSyncExternalStore(context.subscribe, getSnapshot, () =>
-      memoizeStateValue(compute(stateValue as TDeepReadonly<State>), cacheId.current.snapshotInstance)
+      memoizeStateValue(compute(context.getStateValue(false) as TDeepReadonly<State>), cacheId.current.snapshotInstance)
     )
 
     return [state as TDeepMutable<ComputedValue>, enableRevert ? context.setState : context.setStateFast, constructStateSnapshotGetter(context)]
@@ -595,7 +566,7 @@ export function createContextState<State extends Record<string | number, unknown
    * const state = useContextStateValue()
    * ```
    */
-  function useContextStateValue<ComputedValue>(
+  function useContextStateValue<ComputedValue = State>(
     compute: TComputeFunction<ComputedValue> = defaultComputeFunction<TDeepReadonly<State>, ComputedValue>
   ): TDeepMutable<ComputedValue> {
     const context = useStateHolderContext()
@@ -609,12 +580,12 @@ export function createContextState<State extends Record<string | number, unknown
 
     // Cleanup cache when component unmounts
     useEffect(() => {
-      return clearCache(cacheId.current.stateInstance)
+      const id = cacheId.current.stateInstance
+      return () => clearCache(id)
     }, [])
 
-    // Validate compute function purity to prevent infinite renders (dev-only).
-    // In production, this was calling compute() twice per render across ALL hooks — significant overhead.
-    if (getNodeEnv() !== 'production') {
+    // Run extra selector checks only in an explicit development environment.
+    if (getNodeEnv() === 'development') {
       validateComputeFunctionPurity(context.getStateValue(false), compute, 'computeFunction', cacheId.current.stateInstance)
     }
 
@@ -623,7 +594,7 @@ export function createContextState<State extends Record<string | number, unknown
       memoizeStateValue(compute(context.getStateValue(false) as TDeepReadonly<State>), 'getSnapshotWithComputeFunction')
 
     return useSyncExternalStore(context.subscribe, getSnapshot, () =>
-      memoizeStateValue(compute(stateValue as TDeepReadonly<State>), 'hasComputeFunctionSnapshot')
+      memoizeStateValue(compute(context.getStateValue(false) as TDeepReadonly<State>), 'hasComputeFunctionSnapshot')
     ) as TDeepMutable<ReturnType<TComputeFunction<ComputedValue>>>
   }
 

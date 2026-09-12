@@ -1,4 +1,4 @@
-import { createContextState } from './createContextState'
+import { createContextState } from './createContextState.js'
 
 /**
  * Backward-compatible wrapper around createContextState.

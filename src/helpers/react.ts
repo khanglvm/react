@@ -1,5 +1,5 @@
 import {Children, isValidElement, JSXElementConstructor, ReactNode} from 'react'
-import { deepEqual } from './deepEqual'
+import { deepEqual } from './deepEqual.js'
 
 /**
  * Use comparePropsForMemo/ compareAllPropsForMemo function to quickly compare prop(s) for React.memo

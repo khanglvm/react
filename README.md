@@ -1,4 +1,4 @@
-# @lvmk/react
+# @khanglvm/react
 
 React utilities for shared state, translation, and browser events, with helpers for component props and children.
 
@@ -15,32 +15,24 @@ I built these to reuse the setup that kept appearing in my React work. `createCo
 
 For state owned by one component, `useState` is usually enough. These utilities help when several components share the same work. Read the guides for examples and tradeoffs before choosing one.
 
-## Install from source
+## Install
 
-Use React 18 or newer: `createContextState` imports `useSyncExternalStore` directly. The package metadata still declares an older React peer range.
-
-The package name in this repository is `@lvmk/react`. It is not currently available from the public npm registry, so build a local package:
+Use React 18 or 19. The package ships ES modules and TypeScript declarations.
 
 ```sh
-git clone https://github.com/khanglvm/react.git
-cd react
-npm ci
-npm run build
-npm pack --ignore-scripts
+npm install @khanglvm/react
 ```
 
-Then, from your React application, install the generated archive using its full path:
-
-```sh
-npm install /absolute/path/to/react/lvmk-react-1.1.1.tgz
-```
+The [npm package](https://www.npmjs.com/package/@khanglvm/react) includes the
+state utility, translations, browser events, and component helpers. Import
+what you need; the utilities work independently.
 
 ## Shared state in one file
 
 Put this in `App.tsx` in a React TypeScript app. In Next.js App Router, add `'use client'` as the first line.
 
 ```tsx
-import { createContextState } from '@lvmk/react'
+import { createContextState } from '@khanglvm/react'
 
 type CounterState = { count: number }
 
@@ -90,6 +82,6 @@ Create the state utility outside component renders. Initialize every field your 
 
 Give your agent the repository URL and a small task:
 
-> Read the README and the guide for the relevant utility in https://github.com/khanglvm/react. Explain whether it fits this feature before adding it. Follow the source installation steps, preserve the documented API, and check the example against my app's React version. For shared state, use typed selectors and Immer draft updates under the matching provider.
+> Read the README and the guide for the relevant utility in https://github.com/khanglvm/react. Explain whether it fits this feature before adding it. Install `@khanglvm/react` from npm, preserve the documented API, and check the example against my app's React version. For shared state, use typed selectors and Immer draft updates under the matching provider.
 
 By [Khang Le](https://khangle.dev). MIT licensed.

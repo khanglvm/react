@@ -9,7 +9,7 @@ React's [`useContext`](https://react.dev/reference/react/useContext) subscribes 
 `createContextState<State>(instanceId?)` creates a provider and its hooks. Use an object type for `State`. If you supply an ID, keep it unique to that state utility; the browser uses it to identify a cached context. Declare the factory call outside component renders.
 
 ```tsx
-import { createContextState } from '@lvmk/react'
+import { createContextState } from '@khanglvm/react'
 
 type ProfileState = {
   user: { name: string }
@@ -46,7 +46,7 @@ Inside a component:
 const [name, setState, getSnapshot] = useProfileState(state => state.user.name)
 ```
 
-The tuple contains the selected value, a setter, and a snapshot getter. Selectors should be pure: derive their result from state without effects, random values, or timestamps. Treat selected values as read-only even though the returned TypeScript type is mutable. Snapshot equality uses `deepEqual`, which does not compare Map or Set contents and does not support cycles. Prefer scalar or acyclic plain-object selectors; see the [helper limits](helpers.md#deepequala-b).
+The tuple contains the selected value, a setter, and a snapshot getter. Selectors should be pure: derive their result from state without effects, random values, or timestamps. Treat selected values as read-only even though the returned TypeScript type is mutable. Snapshot equality uses `deepEqual`. It compares Map values and Set membership, using native identity for Map keys and Set members. Cyclic structures are unsupported; see the [helper limits](helpers.md#deepequala-b).
 
 The setter accepts either a partial object or an Immer draft callback:
 
@@ -147,13 +147,23 @@ Prefer an ordinary event-handler setter when the change already comes from a use
 `createStateManager` is useful while maintaining code that already uses its names. It delegates to the current factory and adds aliases, so it is not a different state engine:
 
 ```tsx
-import { createStateManager } from '@lvmk/react'
+import { createStateManager } from '@khanglvm/react'
 const legacy = createStateManager<{ count: number }>()
 // Inside legacy.Provider: legacy.useState(state => state.count)
 ```
 
 ## Server rendering
 
-The current built package also has a direct Node ESM import limitation: its bundled JSX-runtime files can resolve React from an incomplete nested package path. The README examples were checked in a React 18 browser app with Vite. Do not assume the same archive imports directly in Node without checking your server bundler.
+Each Provider creates its own store from `initialState`. Server-side selectors
+read that Provider's store, and their selected snapshots are cached. Reusing a
+factory or `instanceId` shares the Context identity; it does not share live state
+between Providers or server requests.
 
-This utility has a server snapshot path, but factory-level initial state and browser context caching require care. Do not treat a module-level store as request-isolated storage. Keep request-specific data out of a shared server store, provide matching initial values for hydration, and verify the behavior in your framework. For Next.js App Router, import these hooks from a client component boundary.
+Pass matching initial values on the server and client for hydration. A mounted
+Provider keeps its store, so changing the `initialState` prop does not reset it.
+Use a setter or prop binding for later updates, or mount a new Provider when you
+want a fresh store. Selector caches are cleared when their hooks unmount.
+
+For Next.js App Router, use the hooks inside a client component boundary. The
+package includes a client directive on its state entrypoint. Check hydration in
+your framework, especially when initial state includes request-specific data.

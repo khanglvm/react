@@ -8,7 +8,7 @@
  * - Work seamlessly with React hooks pattern
  */
 
-import type { TDeepReadonly } from '../helpers'
+import type { TDeepReadonly } from '../helpers/index.js'
 import {useCallback} from "react";
 
 /**

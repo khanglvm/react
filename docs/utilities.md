@@ -7,7 +7,7 @@
 Use `createTranslator` when you have language variants in a small dictionary and want to select one or substitute text. It saves repeating language lookups. It does not manage locale detection, plural rules, or date and number formatting; use the platform's `Intl` APIs or a fuller i18n system for those needs.
 
 ```ts
-import { createTranslator } from '@lvmk/react'
+import { createTranslator } from '@khanglvm/react'
 
 const t = createTranslator<'en' | 'vi'>('en')
 const greeting = { en: 'Hello USER_NAME', vi: 'Xin chào USER_NAME' }
@@ -28,7 +28,7 @@ This fits a feature that owns a small dictionary and needs the same keys across 
 
 ```tsx
 import { createContext, useContext } from 'react'
-import { defineLocale } from '@lvmk/react'
+import { defineLocale } from '@khanglvm/react'
 
 type Language = 'en' | 'vi'
 const LanguageContext = createContext<Language>('en')
@@ -80,7 +80,7 @@ The exported types `LocalizedString<Languages>` and `TranslationNamespace<Langua
 Use `createEventMethod` when mounted components need to respond to an action elsewhere, especially when the caller needs an answer. A callback prop is simpler for a direct parent-child relationship. Native event dispatch does not itself collect promises returned by listeners; this utility waits for its listeners and returns their results.
 
 ```tsx
-import { createEventMethod } from '@lvmk/react'
+import { createEventMethod } from '@khanglvm/react'
 
 type EditorEvents = {
   'editor:can-close': (data: { documentId: string }) => boolean

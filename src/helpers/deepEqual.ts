@@ -64,6 +64,32 @@ export function deepEqual(a: unknown, b: unknown): boolean {
       return false;
     }
 
+    // Map keys keep their identity; values use the same recursive comparison as objects.
+    if (a instanceof Map && b instanceof Map) {
+      if (a.size !== b.size) {
+        return false;
+      }
+      for (const [key, value] of a) {
+        if (!b.has(key) || !deepEqual(value, b.get(key))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // Set membership uses native identity semantics, including NaN equality.
+    if (a instanceof Set && b instanceof Set) {
+      if (a.size !== b.size) {
+        return false;
+      }
+      for (const value of a) {
+        if (!b.has(value)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     const keys = keyList(a);
     const length = keys.length;
 
