@@ -83,7 +83,17 @@ export function deepClone<T>(value: T, cache = new WeakMap<object, unknown>()): 
         cache.set(value, clonedObj);
         for (const key in value as object) {
             if (Object.prototype.hasOwnProperty.call(value, key)) {
-                clonedObj[key as keyof T] = deepClone(value[key as keyof T], cache);
+                const clonedValue = deepClone(value[key as keyof T], cache);
+                if (key === '__proto__') {
+                    Object.defineProperty(clonedObj, key, {
+                        value: clonedValue,
+                        enumerable: true,
+                        configurable: true,
+                        writable: true,
+                    });
+                } else {
+                    clonedObj[key as keyof T] = clonedValue;
+                }
             }
         }
         return clonedObj as T;

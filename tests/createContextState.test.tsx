@@ -7,6 +7,7 @@ import { renderToString } from 'react-dom/server'
 import { JSDOM } from 'jsdom'
 import { createContextState } from '../src/libs/createContextState'
 import { deepEqual } from '../src/helpers/deepEqual'
+import { deepClone } from '../src/helpers/deepClone'
 
 const act = React.act ?? legacyAct
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
@@ -64,6 +65,56 @@ test('a later SSR request does not inherit another Provider initial state', () =
     '<span>first-request</span>',
   )
   assert.equal(renderToString(<state.Provider><Value /></state.Provider>), '<span>empty</span>')
+})
+
+for (const kind of ['value', 'state'] as const) {
+  test(`SSR releases completed request snapshots for the ${kind} hook`, async () => {
+    const state = createContextState<{ items: { id: number }[] }>()
+    function Value() {
+      const items = kind === 'value'
+        ? state.useContextStateValue(snapshot => snapshot.items)
+        : state.useContextState(snapshot => snapshot.items)[0]
+      return <span>{items.length}</span>
+    }
+    function renderRequest() {
+      const items = Array.from({ length: 1000 }, (_, id) => ({ id }))
+      assert.equal(
+        renderToString(<state.Provider initialState={{ items }}><Value /></state.Provider>),
+        '<span>1000</span>',
+      )
+      return new WeakRef(items)
+    }
+    const snapshots = Array.from({ length: 20 }, renderRequest)
+
+    // WeakRef targets stay alive until the current job ends. SSR has no effect cleanup.
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(typeof globalThis.gc, 'function', 'Run tests with --expose-gc')
+    globalThis.gc!()
+    assert.equal(snapshots.filter(snapshot => snapshot.deref() !== undefined).length, 0)
+
+    // Keep the factory alive across collection, as it would be between server requests.
+    assert.equal(
+      renderToString(<state.Provider initialState={{ items: [] }}><Value /></state.Provider>),
+      '<span>0</span>',
+    )
+  })
+}
+
+test('deepClone preserves reserved JSON keys as data, including cycles and shared references', () => {
+  const input = JSON.parse('{"__proto__":{"marker":"data"},"constructor":{"value":1},"prototype":{"value":2}}')
+  input.self = input
+  input.shared = input.__proto__
+  const result = deepClone(input)
+
+  assert.equal(Object.getPrototypeOf(result), Object.prototype)
+  assert.equal(Object.prototype.hasOwnProperty.call(result, '__proto__'), true)
+  assert.deepEqual(result.__proto__, { marker: 'data' })
+  assert.notEqual(result.__proto__, input.__proto__)
+  assert.deepEqual(result.constructor, { value: 1 })
+  assert.deepEqual(result.prototype, { value: 2 })
+  assert.equal(result.self, result)
+  assert.equal(result.shared, result.__proto__)
+  assert.equal(result.marker, undefined)
 })
 
 test('purity checks run only when NODE_ENV explicitly enables development', () => {

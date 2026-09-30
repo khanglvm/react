@@ -114,8 +114,14 @@ function getNodeEnv() {
  * Flow: Component → useContextState → useSyncExternalStore → subscribers → re-render
  * */
 export function createContextState<State extends Record<string | number, unknown>>(instanceId?: string) {
-  // Initialize caching system for performance optimization
-  const { cache, clear: clearCache, uid } = createCacheStorage()
+  const uid = () => Symbol()
+
+  // SSR never runs effect cleanup. Hook-owned caches can be collected after rendering.
+  function useSnapshotCache() {
+    const cacheRef = useRef<ReturnType<typeof createCacheStorage> | null>(null)
+    if (!cacheRef.current) cacheRef.current = createCacheStorage()
+    return cacheRef.current.cache
+  }
 
   /**
    * Creates unique cache identifiers for each hook instance
@@ -234,6 +240,7 @@ export function createContextState<State extends Record<string | number, unknown
    * ```
    */
   function validateComputeFunctionPurity(
+    cache: ReturnType<typeof createCacheStorage>['cache'],
     stateSnapshot: State,
     compute: TComputeFunction<unknown>,
     id: string | symbol,
@@ -520,18 +527,13 @@ export function createContextState<State extends Record<string | number, unknown
     enableRevert: boolean = true
   ): [TDeepMutable<ComputedValue>, TStateSetter, TStateSnapshotGetter] {
     const context = useStateHolderContext()
+    const cache = useSnapshotCache()
 
     // Create unique cache IDs for this hook instance (prevents cache collisions)
     const cacheId = useRef(createHookCacheIds())
 
     // Memoization helper for performance optimization
     const memoizeStateValue = (val: unknown, id: symbol) => cache(val, id, cacheId.current.stateInstance)
-
-    // Cleanup cache when component unmounts
-    useEffect(() => {
-      const id = cacheId.current.stateInstance
-      return () => clearCache(id)
-    }, [])
 
     // Snapshot function for useSyncExternalStore
     // PERF: Pass clone=false since Immer ensures immutability - no need to deep clone before computing
@@ -570,6 +572,7 @@ export function createContextState<State extends Record<string | number, unknown
     compute: TComputeFunction<ComputedValue> = defaultComputeFunction<TDeepReadonly<State>, ComputedValue>
   ): TDeepMutable<ComputedValue> {
     const context = useStateHolderContext()
+    const cache = useSnapshotCache()
 
     const cacheId = useRef(createHookCacheIds())
 
@@ -578,15 +581,9 @@ export function createContextState<State extends Record<string | number, unknown
       []
     )
 
-    // Cleanup cache when component unmounts
-    useEffect(() => {
-      const id = cacheId.current.stateInstance
-      return () => clearCache(id)
-    }, [])
-
     // Run extra selector checks only in an explicit development environment.
     if (getNodeEnv() === 'development') {
-      validateComputeFunctionPurity(context.getStateValue(false), compute, 'computeFunction', cacheId.current.stateInstance)
+      validateComputeFunctionPurity(cache, context.getStateValue(false), compute, 'computeFunction', cacheId.current.stateInstance)
     }
 
     // PERF: Pass clone=false since Immer ensures immutability - no need to deep clone before computing

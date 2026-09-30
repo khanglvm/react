@@ -162,7 +162,8 @@ between Providers or server requests.
 Pass matching initial values on the server and client for hydration. A mounted
 Provider keeps its store, so changing the `initialState` prop does not reset it.
 Use a setter or prop binding for later updates, or mount a new Provider when you
-want a fresh store. Selector caches are cleared when their hooks unmount.
+want a fresh store. Each hook owns its selector cache, so completed server renders
+and unmounted consumers can release their snapshots without effect cleanup.
 
 For Next.js App Router, use the hooks inside a client component boundary. The
 package includes a client directive on its state entrypoint. Check hydration in

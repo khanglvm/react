@@ -10,6 +10,8 @@ Import these through `@khanglvm/react/helpers`; they are not exported from the p
 
 Use this when copying a nested value with the same rules used by the state utility. It handles cycles, arrays, plain objects, Date, RegExp, Map, Set, and ArrayBuffer. Functions, AbortSignal, and FormData are retained by reference. An optional WeakMap tracks copies during recursion.
 
+Own JSON keys such as `__proto__` are copied as data properties without changing the clone's prototype.
+
 ```ts
 import { deepClone } from '@khanglvm/react/helpers'
 
