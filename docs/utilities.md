@@ -6,6 +6,8 @@
 
 Use `createTranslator` when you have language variants in a small dictionary and want to select one or substitute text. It saves repeating language lookups. It does not manage locale detection, plural rules, or date and number formatting; use the platform's `Intl` APIs or a fuller i18n system for those needs.
 
+The translation module has no `"use client"` directive, so React Server Components can import `createTranslator`, `defineLocale` and `assertTranslation` from the package root or `@khanglvm/react/createTranslator`. Call the hooks that `createTranslatorHook` returns from client components. The state and event utilities stay client modules.
+
 ```ts
 import { createTranslator } from '@khanglvm/react'
 

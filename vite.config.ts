@@ -2,7 +2,10 @@ import { defineConfig } from 'vite'
 import { resolve } from 'path'
 import dts from 'vite-plugin-dts'
 
-const isClientEntry = (id: string) => /\/src\/(?:index\.ts|libs\/create(?:ContextState|StateManager|Translator|EventMethod)\.tsx?)$/.test(id)
+// Only modules that use client-only React APIs (context, external stores, effects) are client boundaries.
+// The index and the translator stay server-safe so React Server Components can import them; the index
+// re-exports client modules, which keep their own directive.
+const isClientEntry = (id: string) => /\/src\/libs\/create(?:ContextState|StateManager|EventMethod)\.tsx?$/.test(id)
 
 export default defineConfig({
   plugins: [
