@@ -61,26 +61,26 @@ State (`createContextState`):
 
 - Call the factory at module level. Rename hooks per feature. Use a distinct instance ID per store, or none.
 - `initialState` is read once on mount; prop changes are ignored. Remount with `key` to reset. Provide every field.
-- `bindPropToState` / `StateSynchronizer` run after every rerender whose `data` reference changed (with `withContextProvider`, every rerender) and overwrite local edits. Prefer `initialState` plus event-handler writes.
-- Selectors must be pure. `useContextStateValue` throws on an impure selector only when `process.env.NODE_ENV === 'development'` at run time (Node, SSR, tests; not Vite browser builds). Object results are compared with `deepEqual`, so returning `{ a, b }` is fine.
+- `bindPropToState` / `StateSynchronizer` run after mount when a prop value changes (compared key by key with `Object.is`) and overwrite the fields they write, including local edits. Inline callbacks, `children` and inline objects count as changes on every render; memoize them. Prefer `initialState` plus event-handler writes.
+- Selectors must be pure; in development builds (`process.env.NODE_ENV === 'development'`) `useContextStateValue` throws on an impure one. Object results are compared with `deepEqual`, so returning `{ a, b }` is fine.
 - `setState({ field })` replaces whole top-level fields; use `setState(draft => { ... })` for nested edits.
 - Partial-object values are deep-cloned: `Error`, `Promise`, `WeakMap`, `URL`, `Blob` throw `Unsupported type`, and class instances become plain objects. Store plain data.
-- Immer freezes stored data, including objects assigned in a draft.
+- State is deep-frozen from mount: `initialState`, objects assigned in drafts and every later state. Snapshots are the live frozen object, not copies; mutating one throws. Values inside a Map or Set and class instances are not frozen, so still edit them only through the setter. Use `deepClone`/`structuredClone` for an editable copy.
 - `revert()` undoes one update via inverse patches and overwrites later writes to the same fields. `useSetContextState(false)` disables patches; its revert does nothing.
 - Outside its Provider, a hook gets a no-op store: selectors read `{}` (nested reads throw `TypeError`) and setters do nothing. When updates vanish, check Provider placement first.
 
 Translations:
 
 - `t` only accepts a leaf (`{ en, vi }`). `t` is recreated each render: depend on `language`, not `t`, in `useMemo`/`useEffect`.
-- Replacement keys are literal text matched case-insensitively: `t(d.greeting, { '{name}': name })`. Include the braces in the key. Keys become a RegExp: `{0}` throws, and `$ . * + ? ( ) [ ] | \ ^` change the match. Never use user input as a key.
-- Pass one namespace as a string: `useTranslator('profile')`. A one-item array returns the namespace itself while its type says `{ profile }`.
+- Replacement keys are literal text matched case-insensitively, longest key first: `t(d.greeting, { '{name}': name })`. Include the braces in the key. Any characters work (`{0}`, `$total`). Bare tokens can match inside longer words, so prefer braced tokens.
+- `useTranslator('profile')` returns the namespace (`d.save`); an array, even `['profile']`, returns an object keyed by namespace (`d.profile.save`).
 - In handlers and async code, read the language at call time (store snapshot getter) and call `createTranslator(language)`.
 - No plurals, ICU or formatting; use `Intl` with `language`.
 
 Events (`createEventMethod`):
 
 - Prefix event names per feature; the registry is page-wide.
-- Give request (function-typed) events a data parameter. The handler gets `(data, signal)` at run time, while the no-parameter type wrongly shows `(signal)`.
+- Handlers are always `(data, signal)`; for events without data, `data` is `undefined`: `(_data, signal) => ...`.
 - `emitEvent` returns answers from listeners that succeeded, in registration order; failed listeners are logged and omitted, and an `AbortError` yields `undefined`. Check answers with `answer?.field`.
 - Emit only in the browser (handlers, effects); on the server `emitEvent` rejects. Only mounted listeners receive events.
 

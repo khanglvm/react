@@ -202,7 +202,7 @@ Every hook returns `{ t, d, language }`:
 | `useTranslator(dict => dict.profile)` | Whatever your selector returns |
 | `useProfileText()` (from `createNamespacedTranslatorHook('profile')`) | That namespace: `d.save` |
 
-Pass a single namespace as a string. With a one-item array such as `['profile']`, the code returns the namespace itself, while the type promises `{ profile: ... }`.
+A string returns the namespace itself. An array always returns an object keyed by namespace, even with one item: `useTranslator(['profile'])` gives `d.profile.save`.
 
 ## 6. Use the hooks in components
 
@@ -258,12 +258,11 @@ The second argument of `t` maps text to replace to its value:
 t(d.greeting, { '{name}': user.name }) // "Hello, Khang!"
 ```
 
-Each key is the exact text to find. Matching ignores case and replaces every occurrence. There is no placeholder syntax, which leads to these rules:
+Each key is the exact text to find. Matching ignores case and replaces every occurrence; where keys overlap, the longest one wins. There is no placeholder syntax, which leads to these rules:
 
 - Include the braces in the key. `{ name: 'Khang' }` replaces only the word, leaving `Hello, {Khang}!`.
 - Choose tokens that appear nowhere else in the text. A bare token like `count` also matches inside `discount`.
-- Use letters, digits and underscores inside the braces, starting with a letter. The keys become a regular expression, so `{0}` throws (`Nothing to repeat`) and characters such as `$ . * + ? ( ) [ ] | \ ^` change the match.
-- Never use user input as a key. Values can be anything.
+- Any characters work in keys, matched as written: `{0}`, `$total` and `%s` are all fine.
 - The token in each language must be the same text. TypeScript does not check tokens.
 
 ## 8. Set up a React app (Vite)

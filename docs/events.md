@@ -41,6 +41,8 @@ type ProfileEvents = {
   'profile:open-editor': undefined
   // Request: listeners receive the data and answer with { allow }
   'profile:before-reset': (data: { source: string }) => { allow: boolean }
+  // Request without input
+  'profile:has-unsaved': () => boolean
   // Request with an async answer
   'profile:collect-drafts': (data: { formId: string }) => Promise<string[]>
 }
@@ -53,7 +55,7 @@ export const {
 
 Event names are global across the page: two factories that both define `'saved'` reach each other's listeners. Prefix names with the feature (`profile:`, `chat:`).
 
-Give every request a data parameter, even if it is an empty object; [section 6](#6-cancel-work-with-the-abort-signal) explains why.
+A request without input is a function with no parameters, such as `() => boolean`.
 
 ## 2. Listen
 
@@ -129,7 +131,7 @@ useBuilderEvent('builder:open-settings', ({ blockId }) => {
 
 ## 6. Cancel work with the abort signal
 
-A handler for an event with data receives an `AbortSignal` as its second argument. When the listening component unmounts, the hook aborts it. Pass it to anything you can cancel:
+Every handler receives an `AbortSignal` as its second argument. When the listening component unmounts, the hook aborts it. Pass it to anything you can cancel:
 
 ```tsx
 useProfileEvent('profile:collect-drafts', async ({ formId }, signal) => {
@@ -140,7 +142,11 @@ useProfileEvent('profile:collect-drafts', async ({ formId }, signal) => {
 
 Each call creates a new signal, and the hook keeps only the latest. Unmounting aborts the latest call; earlier calls that are still running are not aborted.
 
-The handler type for a request with no parameter, such as `() => boolean`, shows the signal as the first argument. At run time the signal is always the second argument and the first is `undefined`. Declaring a data parameter, as in section 1, avoids the mismatch.
+Events without data work the same way: the first argument is `undefined` and the signal comes second.
+
+```tsx
+useProfileEvent('profile:has-unsaved', (_data, signal) => checkDrafts({ signal }))
+```
 
 ## 7. Errors and results
 
@@ -167,5 +173,5 @@ The module is a client module. Listeners register in an effect, so nothing runs 
 
 `createEventMethod<Events>()` returns:
 
-- `useEventListener(name, handler)`: a hook. `handler(data, signal)` for events with data, `handler(signal)` per the types for requests without a parameter (see section 6). The return value of `handler` is the answer for function-typed events.
+- `useEventListener(name, handler)`: a hook. The handler is called as `handler(data, signal)`; `data` is `undefined` for events without it. The return value of `handler` is the answer for function-typed events.
 - `emitEvent(name, data?)`: returns a `Promise`. For function-typed events it resolves to an array of answers; for notifications, to `void` in the types.

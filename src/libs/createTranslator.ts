@@ -33,10 +33,9 @@ export type TranslationNamespace<Languages extends string> = {
  * The returned `t(entry, replacements?)`:
  * - returns `entry[language]`, or `''` when that language is missing at run time;
  * - replaces each key of `replacements` with its value. A key is the literal
- *   text to find, matched case-insensitively everywhere in the string. There is
- *   no placeholder syntax: include braces in the key (`{ '{name}': 'Khang' }`).
- *   Keys are joined into a RegExp, so `{0}` throws and characters such as
- *   `$ . * + ? ( ) [ ] | \ ^` change the match. Never use user input as a key.
+ *   text to find, matched case-insensitively everywhere in the string, longest
+ *   key first. There is no placeholder syntax: include braces in the key
+ *   (`{ '{name}': 'Khang' }`). Any characters are allowed in keys.
  *
  * @template Language - The language type (string literal or union)
  * @param currentLanguage - The language to translate to
@@ -62,6 +61,8 @@ export type TranslationNamespace<Languages extends string> = {
  * // Returns: "" (empty string fallback)
  * ```
  */
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 export const createTranslator = <Language extends string>(currentLanguage: Language) => {
   return <Translation extends LocalizedString<Language>>(
     translation: Translation,
@@ -75,7 +76,10 @@ export const createTranslator = <Language extends string>(currentLanguage: Langu
       return matchedText
     }
     
+    // Longest keys first, so `{name_full}` wins over `{name}` at the same position.
     const replaceKeys = Object.keys(replace)
+      .filter(key => key.length > 0)
+      .sort((a, b) => b.length - a.length)
     if (replaceKeys.length === 0) {
       return matchedText
     }
@@ -85,8 +89,8 @@ export const createTranslator = <Language extends string>(currentLanguage: Langu
       replaceKeys.map(key => [key.toLowerCase(), replace[key]])
     )
     
-    // Create regex to match all replacement keys and substitute values
-    const regex = new RegExp(replaceKeys.join('|'), 'gi')
+    // Keys are literal text: escape RegExp syntax so `{0}` or `$total` match as written.
+    const regex = new RegExp(replaceKeys.map(escapeRegExp).join('|'), 'gi')
     return matchedText.replace(regex, (matched) => {
       const value = caseInsensitiveReplace[matched.toLowerCase()]
       return value !== undefined ? value.toString() : matched
@@ -169,8 +173,8 @@ export const defineLocale = <Languages extends string>() => {
    * `useTranslator(selection?)` returns `{ t, d, language }`, where `d` is the
    * whole dictionary, one namespace (`'ns'`), several namespaces (`'a', 'b'` or
    * `['a', 'b']`), or a selector's result. Selection only narrows `d`; every
-   * language and namespace stays in the bundle. Pass one namespace as a string:
-   * a one-item array returns the namespace itself, unlike its declared type.
+   * language and namespace stays in the bundle. A string returns the namespace
+   * itself; an array, even with one item, returns an object keyed by namespace.
    * When `usePreferredLanguage` returns a new language, components using these
    * hooks rerender in it. `t` is recreated on each render.
    *
@@ -313,8 +317,9 @@ export const defineLocale = <Languages extends string>() => {
         // Case 3 & 4: Key-based selection
         const keys = Array.isArray(selectorOrFirstKey) ? selectorOrFirstKey : [selectorOrFirstKey, ...restKeys]
         
-        // Single key optimization - return namespace directly
-        if (keys.length === 1) {
+        // One key passed as a string returns the namespace itself. An array always
+        // returns an object keyed by namespace, matching its declared type.
+        if (!Array.isArray(selectorOrFirstKey) && keys.length === 1) {
           const key: string = keys[0]
           return {
             t: translateFnc(),

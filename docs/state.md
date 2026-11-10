@@ -110,7 +110,7 @@ Without a selector, the hook returns the whole state, and the component rerender
 
 Rules for selectors:
 
-- Keep them pure: the same state gives the same result, with no `Date.now()`, random values or side effects. When `process.env.NODE_ENV` is `'development'` at run time, `useContextStateValue` runs each selector twice and throws if the results differ. `process.env` exists in Node, during server rendering and in tests, so the check can run there. In the browser it runs only if the bundler provides a global `process`; Vite does not, so the check is off in Vite apps.
+- Keep them pure: the same state gives the same result, with no `Date.now()`, random values or side effects. In development builds (`process.env.NODE_ENV === 'development'`), `useContextStateValue` runs each selector twice and throws if the results differ. Vite, webpack and Next.js set that value in `dev` and replace it in production builds, so the check runs while you develop and is skipped in production builds. Node and test runners read `NODE_ENV` from the environment.
 - Treat the result as read-only. Change state through the setter.
 - Prefer small results. Comparing a large selected tree on every update costs time, and cyclic data is not supported.
 
@@ -135,7 +135,7 @@ A partial object replaces each listed top-level field as a whole; it does not me
 
 Values passed in a partial object are deep-copied with [`deepClone`](helpers.md#deepclonevalue-cache). Keep state to plain data: objects, arrays, primitives, `Date`, `Map`, `Set`. An `Error`, a `Promise` or a `WeakMap` makes the copy throw `Unsupported type`, and a class instance becomes a plain object. Store `String(error)` rather than the error. Functions are kept by reference.
 
-Immer freezes the state it produces. An object you assign inside a draft, such as an API response, is frozen in place, so other code that still holds it can no longer mutate it. Copy it first if something else changes it later.
+The state is frozen from the moment the Provider mounts: `initialState` is deep-frozen in place, and every later state comes frozen from Immer. An object you put in the store, through `initialState` or a draft (an API response, a default constant), is frozen in place too, so other code that still holds it can no longer mutate it. Copy it first if something else changes it later. Like Immer, the freeze does not reach class instances, the keys and values inside a `Map` or `Set` (the collection itself is frozen), or the children of an object that was already frozen with `Object.freeze`. Edit those through the setter too.
 
 The state changes immediately, so the snapshot getter ([section 5](#5-read-the-latest-state-in-handlers)) sees it on the next line. Subscribers are notified once per microtask, so several `setState` calls in one handler cause one rerender pass.
 
@@ -169,7 +169,7 @@ async function loadMore() {
 }
 ```
 
-The snapshot is the store's current object, not a copy. Read it; do not mutate it.
+The snapshot is the store's current object, not a copy, so reading it costs nothing and its references stay stable between reads. Because the state is frozen (section 4), changing it throws a `TypeError` instead of silently skipping the subscribers. To get an editable copy, use `deepClone(getSnapshot())` or `structuredClone`, then write changes back with `setState`.
 
 ## 6. Seed the store with data
 
@@ -323,7 +323,7 @@ Providers of different stores nest freely. A component reads each store through 
 
 When a handler in an inner feature needs a value from an outer store, read it with the outer store's snapshot getter instead of subscribing.
 
-A component outside its matching Provider gets an empty fallback store: selectors read `{}` and setters do nothing. The package raises no missing-Provider error, but a selector that reads a nested field, such as `state => state.profile.name`, throws a `TypeError`. A one-time warning per store is logged only under the same `NODE_ENV` condition as the purity check. If an update seems to vanish, check that the component sits under the Provider created by the same factory call.
+A component outside its matching Provider gets an empty fallback store: selectors read `{}` and setters do nothing. The package raises no missing-Provider error, but a selector that reads a nested field, such as `state => state.profile.name`, throws a `TypeError`. Development builds log a one-time warning per store. If an update seems to vanish, check that the component sits under the Provider created by the same factory call.
 
 ## 11. Wrap a component with its Provider
 
@@ -347,9 +347,9 @@ export const ProfileCard = withProfileProvider<ProfileCardProps>(
 
 The type parameter describes the component's props, not the store.
 
-An optional `bindPropToState(draft, props)` copies props into the store. It runs in an effect after every render except the first, whenever its input changed by reference. `withContextProvider` passes it a new props object on every render, so it runs on each parent rerender and overwrites the fields it writes, including local edits. In StrictMode it also runs on mount.
+An optional `bindPropToState(draft, props)` copies props into the store when a prop value changes after mount. Props are compared key by key with `Object.is`, so a parent rerender with the same values does nothing. When a value does change, the callback overwrites the fields it writes, including local edits to them. Inline functions, JSX `children` and inline objects or arrays are new values on every render, so they count as changes: memoize them with `useCallback`/`useMemo`, or keep them out of the wrapped component's props.
 
-`StateSynchronizer` exposes the same mechanism as a component that you render under an existing Provider. Its `data` prop is the input; memoize `data` and the callback so it runs only when they change:
+`StateSynchronizer` exposes the same mechanism as a component that you render under an existing Provider. It compares its `data` prop the same way: an inline object of primitive values is fine, while a `Date`, `Map`, `Set` or class instance compares by reference.
 
 ```tsx
 <StateSynchronizer data={{ name }} updateStateOnDataChanged={(draft, data) => { draft.draftName = data.name }} />
@@ -404,6 +404,7 @@ Checklist:
 - Keep selectors pure and their results small.
 - Use drafts for nested updates; partial objects replace top-level fields.
 - Use the snapshot getter, not render values, inside async code.
+- Treat snapshots and selected values as read-only; they are frozen. Copy before editing.
 - Remount the Provider (`key`) to reset it; changing `initialState` does nothing after mount.
 - Check Provider placement when updates seem to do nothing.
 

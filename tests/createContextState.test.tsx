@@ -360,3 +360,105 @@ test('Map and Set selectors update on changed contents and reuse equivalent coll
     await act(async () => root.unmount())
   }
 })
+
+test('state is frozen from mount, so snapshots cannot be mutated before the first update', async () => {
+  installDOM()
+  const state = createContextState<{ user: { name: string }; tags: string[] }>()
+  const initial = { user: { name: 'Khang' }, tags: ['a'] }
+  let snapshot!: ReturnType<typeof state.useStateSnapshotGetter>
+  function Reader() {
+    snapshot = state.useStateSnapshotGetter()
+    return null
+  }
+  const container = document.createElement('div')
+  const root = createRoot(container)
+  try {
+    await act(async () => {
+      root.render(<state.Provider initialState={initial}><Reader /></state.Provider>)
+    })
+    const current = snapshot()
+    assert.equal(current, initial, 'the snapshot is the stored object, not a copy')
+    assert.ok(Object.isFrozen(current) && Object.isFrozen(current.user) && Object.isFrozen(current.tags))
+    assert.throws(() => { current.user.name = 'changed' }, TypeError)
+    assert.throws(() => { current.tags.push('b') }, TypeError)
+    assert.equal(snapshot().user.name, 'Khang')
+  } finally {
+    await act(async () => root.unmount())
+  }
+})
+
+test('prop binding runs only when prop values change, not on every rerender', async () => {
+  installDOM()
+  const state = createContextState<{ name: string; draft: string }>()
+  let set!: ReturnType<typeof state.useSetContextState>
+  let snapshot!: ReturnType<typeof state.useStateSnapshotGetter>
+  let syncs = 0
+  const Bound = state.withContextProvider<{ name: string; tick: number }>(
+    function View() {
+      set = state.useSetContextState()
+      snapshot = state.useStateSnapshotGetter()
+      return null
+    },
+    {
+      initialState: props => ({ name: props.name, draft: props.name }),
+      bindPropToState: (draft, props) => {
+        syncs++
+        draft.name = props.name
+        draft.draft = props.name
+      },
+    },
+  )
+  const container = document.createElement('div')
+  const root = createRoot(container)
+  try {
+    await act(async () => {
+      root.render(<React.StrictMode><Bound name="A" tick={0} /></React.StrictMode>)
+    })
+    assert.equal(syncs, 0, 'mount, including the StrictMode effect replay, does not sync')
+    await act(async () => { set({ draft: 'local edit' }) })
+    await act(async () => {
+      root.render(<React.StrictMode><Bound name="A" tick={0} /></React.StrictMode>)
+    })
+    assert.equal(syncs, 0, 'a parent rerender with equal props keeps the local edit')
+    assert.equal(snapshot().draft, 'local edit')
+    await act(async () => {
+      root.render(<React.StrictMode><Bound name="B" tick={0} /></React.StrictMode>)
+    })
+    assert.equal(syncs, 1)
+    assert.deepEqual({ ...snapshot() }, { name: 'B', draft: 'B' })
+  } finally {
+    await act(async () => root.unmount())
+  }
+})
+
+test('StateSynchronizer compares Dates, Maps and Sets by reference, so a new one syncs', async () => {
+  installDOM()
+  const state = createContextState<{ day: number; keys: number }>()
+  let snapshot!: ReturnType<typeof state.useStateSnapshotGetter>
+  function Reader() {
+    snapshot = state.useStateSnapshotGetter()
+    return null
+  }
+  function Host({ day, keys }: { day: Date; keys: Map<string, number> }) {
+    return (
+      <>
+        <state.StateSynchronizer data={day} updateStateOnDataChanged={(draft, value) => { draft.day = value.getDate() }} />
+        <state.StateSynchronizer data={keys} updateStateOnDataChanged={(draft, value) => { draft.keys = value.size }} />
+        <Reader />
+      </>
+    )
+  }
+  const container = document.createElement('div')
+  const root = createRoot(container)
+  try {
+    await act(async () => {
+      root.render(<state.Provider initialState={{ day: 1, keys: 0 }}><Host day={new Date(2026, 0, 1)} keys={new Map()} /></state.Provider>)
+    })
+    await act(async () => {
+      root.render(<state.Provider initialState={{ day: 1, keys: 0 }}><Host day={new Date(2026, 0, 15)} keys={new Map([['a', 1]])} /></state.Provider>)
+    })
+    assert.deepEqual({ ...snapshot() }, { day: 15, keys: 1 })
+  } finally {
+    await act(async () => root.unmount())
+  }
+})
