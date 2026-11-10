@@ -197,8 +197,9 @@ export function createContextState<State extends Record<string | number, unknown
   }
 
   /**
-   * Hook to access the state holder context with error handling
-   * Throws descriptive error if used outside of StateProvider
+   * Returns the nearest Provider's store. Outside a Provider it returns a no-op
+   * fallback (selectors read `{}`, setters do nothing) and warns once when
+   * `process.env.NODE_ENV` is 'development' at run time.
    */
   const useStateHolderContext = () => {
     const context = useContext(StateHolderContext)

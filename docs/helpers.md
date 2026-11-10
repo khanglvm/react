@@ -8,7 +8,9 @@ Import these through `@khanglvm/react/helpers`; they are not exported from the p
 
 ### deepClone(value, cache?)
 
-Use this when copying a nested value with the same rules used by the state utility. It handles cycles, arrays, plain objects, Date, RegExp, Map, Set, and ArrayBuffer. Functions, AbortSignal, and FormData are retained by reference. An optional WeakMap tracks copies during recursion.
+Use this when copying a nested value with the same rules the state utility uses for partial updates. It handles cycles, arrays, plain objects, Date, RegExp, Map, Set, ArrayBuffer and typed arrays. Functions, AbortSignal, and FormData are retained by reference. An optional WeakMap tracks copies during recursion.
+
+Any other object type throws `Unsupported type`, including Error, Promise, WeakMap, WeakSet, URL and Blob. A class instance is copied as a plain object, so its methods and prototype are lost.
 
 Own JSON keys such as `__proto__` are copied as data properties without changing the clone's prototype.
 
@@ -20,11 +22,13 @@ const copy = deepClone(original)
 copy.tags.push('typescript') // original.tags is unchanged
 ```
 
-An object spread only copies one level; this function descends into nested data. For standard structured-clone-compatible data, consider the platform's `structuredClone` first. This helper is not a universal clone: it drops custom object prototypes and symbol properties, and typed-array views are rebuilt from their entire backing buffer without preserving their original offset or length. It also expects AbortSignal and FormData globals to exist.
+An object spread only copies one level; this function descends into nested data. A typical use is handing out a copy of live state, such as an export snapshot, that the caller can change without touching the store. For standard structured-clone-compatible data, consider the platform's `structuredClone` first. This helper is not a universal clone: it drops custom object prototypes and symbol properties, and typed-array views are rebuilt from their entire backing buffer without preserving their original offset or length. It also expects AbortSignal and FormData globals to exist.
 
 ### deepEqual(a, b)
 
 Use this for value comparison of acyclic objects, arrays, Maps, and Sets when reference equality is insufficient. It also compares Date timestamps, RegExp strings, constructors, and NaN; React element `_owner` fields are skipped.
+
+Typical uses: skip copying a prop into local state when the new prop has a new reference but the same content, and return the previous object from an immutable update when nothing changed, so memoized consumers keep their reference.
 
 ```ts
 import { deepEqual } from '@khanglvm/react/helpers'
@@ -51,7 +55,9 @@ console.log(first === second) // true
 clear(group)
 ```
 
-`cache(value, entryId, ...groupKeys)` returns the earlier value when `deepEqual` says they match. `clear(...groupKeys)` removes a group path; `uid()` returns a new symbol. All equality limitations above apply.
+`cache(value, entryId, ...groupKeys)` returns the earlier value when `deepEqual` says they match. `clear(...groupKeys)` removes a group path; `uid()` returns a new symbol. All equality limitations above apply. A cached `undefined` counts as empty, so the next call stores its value without comparing.
+
+A typical use is a selector for an external store that maps raw data into a new object on every read: passing the result through `cache` returns the same reference while the content is unchanged, which `useSyncExternalStore` requires to avoid rerendering in a loop. The state utility uses it this way for selected values.
 
 There is no whole-cache clear: `clear()` with no keys does nothing. Supplying a factory ID fixes the entry ID, but its bound `clear()` does not reliably remove the resulting entry. Prefer the unbound factory with explicit groups, as above, and clear groups when their owner is done. Skip this helper when a stable reference or React `useMemo` already solves the problem.
 
@@ -79,6 +85,8 @@ React's [memo documentation](https://react.dev/reference/react/memo#specifying-a
 ## Children
 
 The child helpers package repeated checks into named functions. Use them only when their exact rules match your component; most components can simply render `children`.
+
+`filterComponentFromChildren` lets a compound component pick its slots out of `children`, such as `<Row><Row.Avatar />...<Row.Tags /></Row>`, and render each slot in its own place.
 
 ```tsx
 import {
@@ -126,4 +134,4 @@ These exports affect TypeScript only. Use them to reduce repeated type expressio
 | `DistributiveOmit<T, K>` | Apply Omit to each union member: `DistributiveOmit<{ kind: 'a'; x: number } \| { kind: 'b'; y: string }, 'kind'>` | A compile-time union transformation |
 | `Prettify<T>` | Expand an object intersection for easier type inspection: `Prettify<{ a: string } & { b: number }>` | Does not transform values |
 
-Root exports also include `TContextState` and `TStateManager`, return-type aliases for their factories, plus `LocalizedString` and `TranslationNamespace`, described in the [translation guide](utilities.md#translation).
+Root exports also include `TContextState` and `TStateManager`, return-type aliases for their factories, plus `LocalizedString` and `TranslationNamespace`, described in the [translation guide](translation.md#13-api-reference).

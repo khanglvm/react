@@ -30,6 +30,21 @@ type ExtractParamType<T> = T extends (arg: infer P) => any ? P : T extends () =>
 // Helper type to check if function has parameters
 type HasParameters<T> = T extends () => any ? false : T extends (arg: any) => any ? true : false;
 
+/**
+ * Creates a typed event bus for mounted components.
+ *
+ * Event map values are notification payloads (`undefined` for none) or
+ * functions `(data) => Answer` for requests. `useEventListener(name, handler)`
+ * registers after mount; the handler runs as `handler(data, signal)`, and the
+ * signal aborts when the listener unmounts. `emitEvent(name, data?)` runs all
+ * matching listeners concurrently and resolves to the answers of those that
+ * succeeded, in registration order. Failed listeners are logged and omitted.
+ *
+ * Event names share one page-wide registry: prefix them per feature. Give
+ * request events a data parameter, because the no-parameter handler type shows
+ * the signal first while it arrives second. Emit only in the browser.
+ * Guide: https://github.com/khanglvm/react/blob/master/docs/events.md
+ */
 export function createEventMethod<
   CustomEventDef extends Record<string, unknown | TEventFunction>
 >() {
