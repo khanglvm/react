@@ -22,7 +22,7 @@ import type {
 } from 'react'
 // Dependencies
 import { comparePropsForMemo, createCacheStorage, deepClone } from '../helpers/index.js'
-import { applyPatches, produce, produceWithPatches } from 'immer'
+import { applyPatches, freeze, produce, produceWithPatches } from 'immer'
 import type { Draft } from 'immer'
 import type { TDeepMutable, TDeepReadonly } from '../helpers/index.js'
 import { enableMapSet, enablePatches } from 'immer'
@@ -93,10 +93,39 @@ type DraftFunctionWithData<T, D> = (draft: Draft<T>, data: D) => void
 type TDefaultComputeFunction = <Input, Output>(input: Input) => Output
 const defaultComputeFunction: TDefaultComputeFunction = <Input, Output>(state: Input) => state as unknown as Output
 
-function getNodeEnv() {
-  return typeof globalThis === 'object' && 'process' in globalThis
-    ? (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV
-    : undefined
+declare const process: { env: { NODE_ENV?: string } }
+
+// Bundlers (Vite, webpack, Next.js) replace `process.env.NODE_ENV` with a literal,
+// so the checks follow the app's dev or production build. Without a bundler and
+// without a global `process`, the reference throws and the checks stay off.
+function isDevelopment() {
+  try {
+    return process.env.NODE_ENV === 'development'
+  } catch {
+    return false
+  }
+}
+
+function isPlainObjectOrArray(value: unknown): value is object {
+  if (Array.isArray(value)) return true
+  if (typeof value !== 'object' || value === null) return false
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+// Plain objects and arrays compare key by key with Object.is, so a new props object
+// with the same values is equal. Anything else (Date, Map, Set, class instances)
+// compares by reference.
+function shallowEqual(a: unknown, b: unknown) {
+  if (Object.is(a, b)) return true
+  if (!isPlainObjectOrArray(a) || !isPlainObjectOrArray(b) || Array.isArray(a) !== Array.isArray(b)) return false
+  const keysA = Object.keys(a)
+  if (keysA.length !== Object.keys(b).length) return false
+  return keysA.every(
+    key =>
+      Object.prototype.hasOwnProperty.call(b, key) &&
+      Object.is((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
+  )
 }
 
 /**
@@ -198,8 +227,8 @@ export function createContextState<State extends Record<string | number, unknown
 
   /**
    * Returns the nearest Provider's store. Outside a Provider it returns a no-op
-   * fallback (selectors read `{}`, setters do nothing) and warns once when
-   * `process.env.NODE_ENV` is 'development' at run time.
+   * fallback (selectors read `{}`, setters do nothing) and warns once in
+   * development builds.
    */
   const useStateHolderContext = () => {
     const context = useContext(StateHolderContext)
@@ -208,7 +237,7 @@ export function createContextState<State extends Record<string | number, unknown
       // In some cases (like static HTML export), the context provider might not be available.
       // Instead of crashing, we return a dummy context that allows read-only access to the default state.
       // Warn once per instanceId to avoid flooding the console on every render.
-      if (getNodeEnv() === 'development') {
+      if (isDevelopment()) {
         const key = instanceId || 'unknown'
         if (!warnedMissingProvider.has(key)) {
           warnedMissingProvider.add(key)
@@ -283,8 +312,13 @@ export function createContextState<State extends Record<string | number, unknown
     emitChanges: () => void
     setPostFlush: (callback: (draft: Draft<State>) => void) => void
   } {
-    // Initial state belongs to this Provider and is read only on mount.
-    const stateRef = useRef((initialState ?? stateValue) as State)
+    // Initial state belongs to this Provider and is read only on mount. It is frozen
+    // right away, as Immer freezes every later state, so a snapshot cannot be mutated
+    // behind the subscribers' backs.
+    const stateRef = useRef<State>(null as unknown as State)
+    if (stateRef.current === null) {
+      stateRef.current = freeze((initialState ?? stateValue) as State, true)
+    }
 
     /**
      * Gets current state value with optional cloning for immutability
@@ -583,7 +617,7 @@ export function createContextState<State extends Record<string | number, unknown
     )
 
     // Run extra selector checks only in an explicit development environment.
-    if (getNodeEnv() === 'development') {
+    if (isDevelopment()) {
       validateComputeFunctionPurity(cache, context.getStateValue(false), compute, 'computeFunction', cacheId.current.stateInstance)
     }
 
@@ -633,7 +667,8 @@ export function createContextState<State extends Record<string | number, unknown
    * [Experimental] Component that synchronizes external props to internal state
    *
    * Useful for keeping state in sync with props that change over time.
-   * Only updates state after the first render to avoid initial synchronization.
+   * Runs after mount whenever `data` changes, compared key by key with Object.is,
+   * so a new object with the same values does not overwrite state.
    *
    * @param data - External data to sync to state
    * @param updateStateOnDataChanged - Function that updates state based on data changes
@@ -656,15 +691,17 @@ export function createContextState<State extends Record<string | number, unknown
     data?: ComponentProps
     updateStateOnDataChanged?: DraftFunctionWithData<State, ComponentProps>
   }) {
-    const firstLoaded = useRef(false)
+    // The data seen at mount is the baseline; sync runs only when it changes.
+    const previousData = useRef(data)
     const setState = useSetContextState()
 
     useEffect(() => {
-      // Skip first render to avoid initial sync
-      if (!firstLoaded.current) {
-        firstLoaded.current = true
+      // A new object with the same values (inline props, a parent rerender,
+      // StrictMode's second effect run) is not a change.
+      if (shallowEqual(previousData.current, data)) {
         return
       }
+      previousData.current = data
       if (!updateStateOnDataChanged || !data) {
         return
       }

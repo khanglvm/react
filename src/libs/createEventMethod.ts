@@ -35,14 +35,14 @@ type HasParameters<T> = T extends () => any ? false : T extends (arg: any) => an
  *
  * Event map values are notification payloads (`undefined` for none) or
  * functions `(data) => Answer` for requests. `useEventListener(name, handler)`
- * registers after mount; the handler runs as `handler(data, signal)`, and the
- * signal aborts when the listener unmounts. `emitEvent(name, data?)` runs all
+ * registers after mount; the handler runs as `handler(data, signal)` (data is
+ * `undefined` for events without it), and the signal aborts when the listener
+ * unmounts. `emitEvent(name, data?)` runs all
  * matching listeners concurrently and resolves to the answers of those that
  * succeeded, in registration order. Failed listeners are logged and omitted.
  *
- * Event names share one page-wide registry: prefix them per feature. Give
- * request events a data parameter, because the no-parameter handler type shows
- * the signal first while it arrives second. Emit only in the browser.
+ * Event names share one page-wide registry: prefix them per feature. Emit only
+ * in the browser.
  * Guide: https://github.com/khanglvm/react/blob/master/docs/events.md
  */
 export function createEventMethod<
@@ -55,7 +55,7 @@ export function createEventMethod<
     handle: IsFunction<EventDef[EventKey]> extends true
       ? HasParameters<EventDef[EventKey]> extends true
         ? (eventData: ExtractParamType<EventDef[EventKey]>, signal?: AbortSignal) => ExtractReturnType<EventDef[EventKey]> | Promise<ExtractReturnType<EventDef[EventKey]>>
-        : (signal?: AbortSignal) => ExtractReturnType<EventDef[EventKey]> | Promise<ExtractReturnType<EventDef[EventKey]>>
+        : (eventData: void, signal?: AbortSignal) => ExtractReturnType<EventDef[EventKey]> | Promise<ExtractReturnType<EventDef[EventKey]>>
       : (eventData: EventDef[EventKey], signal?: AbortSignal) => Promise<void> | void
   ) {
     const abortControllerRef = useRef<AbortController | null>(null);

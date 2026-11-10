@@ -20,4 +20,4 @@ Guides quote the example apps; keep the two in step. Write docs for a reader who
 
 ## Releases
 
-The `Publish npm package` workflow publishes with npm trusted publishing when a push to `master` changes the `version` in `package.json` and that version is not on npm yet. Bump the version in the same change as the work it releases.
+The `Publish npm package` workflow publishes with npm trusted publishing when a push to `master` changes the `version` in `package.json` and that version is not on npm yet. Bump the version in the same change as the work it releases, and add its entry to `CHANGELOG.md`.
