@@ -1,87 +1,124 @@
 # @khanglvm/react
 
-React utilities for shared state, translation, and browser events, with helpers for component props and children.
+React utilities for TypeScript apps, in React or Next.js App Router:
 
-I built these to reuse the setup that kept appearing in my React work. `createContextState` is the main state utility: one factory gives you typed selector hooks, Immer draft updates, and a revert function for each update. The other tools work independently.
+- Shared state with selectors, Immer updates and an undo function per update.
+- Typed translations: dictionaries checked by the compiler, translator hooks, and instant language switching without a page reload.
+- Async events between components that don't know each other, with typed answers.
+- Helpers for deep equality, cloning, stable references and React children.
 
-## Choose a tool
-
-| When you need to… | Start here | What it adds |
-| --- | --- | --- |
-| Share editable state across components | [createContextState](https://github.com/khanglvm/react/blob/master/docs/state.md) | Selectors, draft updates, and per-update rollback in one API |
-| Keep translation keys and language variants together | [defineLocale / createTranslator](https://github.com/khanglvm/react/blob/master/docs/utilities.md#translation) | Typed dictionaries, namespace hooks, and text substitution |
-| Ask mounted components for an async response | [createEventMethod](https://github.com/khanglvm/react/blob/master/docs/utilities.md#browser-events) | Typed event data and collected listener results |
-| Reuse equality, caching, or React child checks | [Helpers](https://github.com/khanglvm/react/blob/master/docs/helpers.md) | Small functions with explicit behavior and limits |
-
-For state owned by one component, `useState` is usually enough. These utilities help when several components share the same work. Read the guides for examples and tradeoffs before choosing one.
-
-## Install
-
-Use React 18 or 19. The package ships ES modules and TypeScript declarations.
+I built these to stop rewriting the same setup in every React project. The same designs run in production in two recruitment platforms, including a Next.js monorepo with more than ten feature packages. This package is their public, framework-neutral version.
 
 ```sh
 npm install @khanglvm/react
 ```
 
-The [npm package](https://www.npmjs.com/package/@khanglvm/react) includes the
-state utility, translations, browser events, and component helpers. Import
-what you need; the utilities work independently.
+Requires React 18 or 19. The package ships ES modules with TypeScript declarations, and Immer is its only dependency.
+
+## Pick a tool
+
+| You need to | Use | Guide |
+| --- | --- | --- |
+| Share editable state across a feature, with selectors and optimistic updates | `createContextState` | [State](https://github.com/khanglvm/react/blob/master/docs/state.md) |
+| Translate UI text with compile-time checks and switch language instantly | `defineLocale`, `createTranslatorHook` | [Translations](https://github.com/khanglvm/react/blob/master/docs/translation.md) |
+| Notify or ask mounted components elsewhere in the app and collect their answers | `createEventMethod` | [Events](https://github.com/khanglvm/react/blob/master/docs/events.md) |
+| Compare, clone or cache values; pick slots from `children` | `@khanglvm/react/helpers` | [Helpers](https://github.com/khanglvm/react/blob/master/docs/helpers.md) |
+| Know what runs in server and client components | | [Next.js App Router](https://github.com/khanglvm/react/blob/master/docs/nextjs.md) |
+
+Each utility works on its own. They also fit together: the translation guide keeps the current language in a `createContextState` store.
 
 ## Shared state in one file
 
-Put this in `App.tsx` in a React TypeScript app. In Next.js App Router, add `'use client'` as the first line.
-
 ```tsx
+'use client' // only for Next.js App Router
+
 import { createContextState } from '@khanglvm/react'
 
-type CounterState = { count: number }
+const counter = createContextState<{ count: number }>()
 
-const {
-  Provider,
-  useContextStateValue: useCounterValue,
-  useSetContextState: useSetCounter,
-} = createContextState<CounterState>()
-
-function CounterValue() {
-  const count = useCounterValue(state => state.count)
+function Count() {
+  const count = counter.useContextStateValue(state => state.count)
   return <p>Count: {count}</p>
 }
 
-function IncrementButton() {
-  const setState = useSetCounter()
-
-  return (
-    <button onClick={() => setState(draft => { draft.count += 1 })}>
-      Add one
-    </button>
-  )
+function AddOne() {
+  const setState = counter.useSetContextState()
+  return <button onClick={() => setState(draft => { draft.count += 1 })}>Add one</button>
 }
 
 export default function App() {
   return (
-    <Provider initialState={{ count: 0 }}>
-      <CounterValue />
-      <IncrementButton />
-    </Provider>
+    <counter.Provider initialState={{ count: 0 }}>
+      <Count />
+      <AddOne />
+    </counter.Provider>
   )
 }
 ```
 
-Create the state utility outside component renders. Initialize every field your selectors read, keep selectors pure, and use the setter to change state. A hook outside its provider cannot update the store.
+Only `Count` rerenders on click: it selects `count`, while `AddOne` only writes. Every `setState` returns a function that undoes that update, which makes optimistic saves short:
 
-## More examples
+```tsx
+const revert = setState(draft => { draft.profile.name = newName })
+try { await api.saveName(newName) } catch { revert() }
+```
 
-- [State API, reverting updates, and binding props](https://github.com/khanglvm/react/blob/master/docs/state.md)
-- [Translation and browser events](https://github.com/khanglvm/react/blob/master/docs/utilities.md)
-- [Every helper and exported type](https://github.com/khanglvm/react/blob/master/docs/helpers.md)
-- [Implementation](https://github.com/khanglvm/react/blob/master/src/libs/createContextState.tsx)
+## Typed translations in three files
 
-`createStateManager` remains available for older hook names. Use `createContextState` in new code.
+```ts
+// i18n/locale.ts: declare languages once
+import { defineLocale } from '@khanglvm/react'
+export type Language = 'en' | 'vi'
+export const { assertTranslation, createTranslator, createTranslatorHook } = defineLocale<Language>()
 
-## Using a coding agent
+// i18n/dictionary.ts: a missing language is a compile error
+export const translation = assertTranslation({
+  profile: {
+    greeting: { en: 'Hello, {name}!', vi: 'Xin chào, {name}!' },
+    save: { en: 'Save', vi: 'Lưu' },
+  },
+})
 
-Give your agent the repository URL and a small task:
+// i18n/translator.ts: hooks that follow your app's current language
+export const { useTranslator, createNamespacedTranslatorHook } = createTranslatorHook({
+  translation,
+  usePreferredLanguage: useLanguage, // your hook, e.g. a createContextState selector
+})
+export const useProfileText = createNamespacedTranslatorHook('profile')
+```
 
-> Read the README and the guide for the relevant utility in https://github.com/khanglvm/react. Explain whether it fits this feature before adding it. Install `@khanglvm/react` from npm, preserve the documented API, and check the example against my app's React version. For shared state, use typed selectors and Immer draft updates under the matching provider.
+```tsx
+function SaveButton() {
+  const { t, d } = useProfileText()
+  return <button>{t(d.save)}</button> // d.save autocompletes; d.sav is an error
+}
+```
+
+When `useLanguage` returns a new value, every component using these hooks rerenders in that language. The [translation guide](https://github.com/khanglvm/react/blob/master/docs/translation.md) builds the language store, then wires it up for Vite (saved in `localStorage`) and for Next.js (cookie, server components, `generateMetadata`).
+
+## Examples
+
+Two small apps run the same profile editor: typed translations with a language switcher, a store with an optimistic save that rolls back on failure, and an event that lets the editor veto a reset.
+
+- [React with Vite](https://github.com/khanglvm/react/tree/master/examples/react-vite)
+- [Next.js App Router](https://github.com/khanglvm/react/tree/master/examples/nextjs-app-router): language from a cookie, server-rendered text and metadata, server data seeding a client store.
+
+## For AI coding agents
+
+The repository includes an agent skill with the setup recipes, API rules and known pitfalls. Install it into your project with:
+
+```sh
+npx skills add khanglvm/react
+```
+
+The skill also ships in the npm package at `node_modules/@khanglvm/react/skills/khanglvm-react/SKILL.md`, next to the guides in `node_modules/@khanglvm/react/docs/`, so an agent can read the docs that match the installed version. [`llms.txt`](https://github.com/khanglvm/react/blob/master/llms.txt) indexes them.
+
+If you don't install the skill, point the agent at the copy in the package:
+
+> Read node_modules/@khanglvm/react/skills/khanglvm-react/SKILL.md and follow it. Then add an English/Vietnamese language switcher to this Next.js app using @khanglvm/react, with the language stored in a cookie.
+
+## Older names
+
+`createStateManager` wraps `createContextState` with older hook names (`useState`, `useStateValue`, `useSetState`, `useSnapshot`, `withProvider`). Use `createContextState` in new code.
 
 By [Khang Le](https://khangle.dev). MIT licensed.

@@ -1,11 +1,11 @@
 /**
- * Translation utilities for creating type-safe, multi-language React hooks
+ * Typed translations: dictionaries whose leaves hold every language, a plain
+ * translator function, and hooks that follow the app's current language.
  *
- * This module provides utilities to create internationalization (i18n) hooks that:
- * - Support multiple languages with type safety
- * - Allow text interpolation with variables
- * - Provide namespace-based translation access
- * - Work seamlessly with React hooks pattern
+ * This module has no client directive, so server components can import
+ * `createTranslator` and `defineLocale` and use the `assertTranslation` it
+ * returns. Only the hooks returned by `createTranslatorHook` need a client component.
+ * Guide: https://github.com/khanglvm/react/blob/master/docs/translation.md
  */
 
 import type { TDeepReadonly } from '../helpers/index.js'
@@ -28,13 +28,15 @@ export type TranslationNamespace<Languages extends string> = {
 };
 
 /**
- * Creates a translation function for a specific language with interpolation support
+ * Creates a translation function for one language.
  *
- * This function creates a translator that:
- * - Selects text for the specified language
- * - Handles placeholder replacement using {key} syntax
- * - Supports string and number interpolation
- * - Falls back to empty string if language not found
+ * The returned `t(entry, replacements?)`:
+ * - returns `entry[language]`, or `''` when that language is missing at run time;
+ * - replaces each key of `replacements` with its value. A key is the literal
+ *   text to find, matched case-insensitively everywhere in the string. There is
+ *   no placeholder syntax: include braces in the key (`{ '{name}': 'Khang' }`).
+ *   Keys are joined into a RegExp, so `{0}` throws and characters such as
+ *   `$ . * + ? ( ) [ ] | \ ^` change the match. Never use user input as a key.
  *
  * @template Language - The language type (string literal or union)
  * @param currentLanguage - The language to translate to
@@ -47,10 +49,10 @@ export type TranslationNamespace<Languages extends string> = {
  * const greeting = t({ en: "Hello", vi: "Xin chào" })
  * // Returns: "Hello"
  *
- * // With interpolation
+ * // With replacements: include the braces in each key
  * const personalGreeting = t(
  *   { en: "Hello {name}, you have {count} messages", vi: "Xin chào {name}, bạn có {count} tin nhắn" },
- *   { name: "John", count: 5 }
+ *   { '{name}': "John", '{count}': 5 }
  * )
  * // Returns: "Hello John, you have 5 messages"
  *
@@ -162,14 +164,15 @@ export const defineLocale = <Languages extends string>() => {
   }
   
   /**
-   * Creates advanced React hooks for translation management with namespace selection
+   * Creates translator hooks bound to a dictionary and the app's language hook.
    *
-   * This factory function creates a powerful translation hook system that supports:
-   * - Multiple namespace selection strategies
-   * - Performance optimization through selective loading
-   * - Custom transformation functions
-   * - Automatic language switching
-   * - Type-safe translation access
+   * `useTranslator(selection?)` returns `{ t, d, language }`, where `d` is the
+   * whole dictionary, one namespace (`'ns'`), several namespaces (`'a', 'b'` or
+   * `['a', 'b']`), or a selector's result. Selection only narrows `d`; every
+   * language and namespace stays in the bundle. Pass one namespace as a string:
+   * a one-item array returns the namespace itself, unlike its declared type.
+   * When `usePreferredLanguage` returns a new language, components using these
+   * hooks rerender in it. `t` is recreated on each render.
    *
    * @param options - Configuration object for the translator hook
    * @param options.translation - Complete translation definition with all namespaces
@@ -337,9 +340,9 @@ export const defineLocale = <Languages extends string>() => {
     /**
      * Creates a React hook bound to a specific translation namespace
      *
-     * This function creates a specialized hook that always returns translations
-     * for a specific namespace, providing better performance and cleaner code
-     * for components that only need access to a particular feature area.
+     * The returned hook takes no arguments and returns `{ t, d, language }` with
+     * `d` set to that namespace, so a feature's components autocomplete only
+     * the feature's keys.
      *
      * @template K - Key type from the translation namespace
      * @param namespace - The specific namespace key to bind to

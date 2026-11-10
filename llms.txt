@@ -1,0 +1,27 @@
+# @khanglvm/react
+
+> React utilities for TypeScript apps in React or Next.js App Router: shared state with selectors, Immer updates and per-update revert (createContextState); typed translations with compile-time checked dictionaries and instant language switching (defineLocale, assertTranslation, createTranslatorHook); async events between unrelated mounted components with typed answers (createEventMethod); and equality, clone, cache and React children helpers (@khanglvm/react/helpers). React 18 or 19, ES modules, Immer as the only dependency.
+
+Inside an installed project the guides, the skill and this file are at node_modules/@khanglvm/react/ and match the installed version. The examples live only in the repository.
+
+## Agent skill
+
+- [SKILL.md](https://raw.githubusercontent.com/khanglvm/react/master/skills/khanglvm-react/SKILL.md): setup recipes, API rules and known pitfalls in one page
+
+## Guides
+
+- [State](https://raw.githubusercontent.com/khanglvm/react/master/docs/state.md): createContextState, selectors, updates, snapshots, optimistic revert, seeding from server data, post-flush
+- [Translations](https://raw.githubusercontent.com/khanglvm/react/master/docs/translation.md): dictionaries, translator hooks, language store, Vite and Next.js setup, interpolation rules
+- [Events](https://raw.githubusercontent.com/khanglvm/react/master/docs/events.md): createEventMethod, notifications, requests, vetoes, abort signal, error semantics
+- [Next.js App Router](https://raw.githubusercontent.com/khanglvm/react/master/docs/nextjs.md): what runs in server and client components, file layout, troubleshooting
+- [Helpers](https://raw.githubusercontent.com/khanglvm/react/master/docs/helpers.md): deepEqual, deepClone, createCacheStorage, memo comparators, children helpers, types
+
+## Examples
+
+- [React with Vite](https://github.com/khanglvm/react/tree/master/examples/react-vite)
+- [Next.js App Router](https://github.com/khanglvm/react/tree/master/examples/nextjs-app-router)
+
+## Optional
+
+- [README](https://raw.githubusercontent.com/khanglvm/react/master/README.md)
+- [Source](https://github.com/khanglvm/react/tree/master/src)

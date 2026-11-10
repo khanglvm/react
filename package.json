@@ -1,7 +1,7 @@
 {
   "name": "@khanglvm/react",
-  "version": "1.2.2",
-  "description": "React utilities for shared state, typed translations, browser events, and component helpers.",
+  "version": "1.2.3",
+  "description": "React utilities for shared state with selectors and rollback, typed translations with instant language switching, and async events between components. Works with React and Next.js App Router.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -47,6 +47,8 @@
     "dist",
     "README.md",
     "docs",
+    "skills",
+    "llms.txt",
     "LICENSE"
   ],
   "scripts": {
@@ -64,7 +66,12 @@
     "utilities",
     "typescript",
     "state-management",
-    "i18n"
+    "i18n",
+    "nextjs",
+    "app-router",
+    "translation",
+    "immer",
+    "agent-skills"
   ],
   "author": "Khang Le",
   "license": "MIT",
