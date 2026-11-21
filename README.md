@@ -1,6 +1,7 @@
 # @khanglvm/react
 
-React utilities for TypeScript apps, in React or Next.js App Router:
+<!-- docs:begin index.md -->
+React utilities for TypeScript apps in React or Next.js App Router, each one usable on its own.
 
 - Shared state with selectors, Immer updates and an undo function per update.
 - Typed translations: dictionaries checked by the compiler, translator hooks, and instant language switching without a page reload.
@@ -9,23 +10,35 @@ React utilities for TypeScript apps, in React or Next.js App Router:
 
 I built these to stop rewriting the same setup in every React project. The same designs run in production in two recruitment platforms, including a Next.js monorepo with more than ten feature packages. This package is their public, framework-neutral version.
 
+### Pick a tool
+
+| You need to | Use | Guide |
+| --- | --- | --- |
+| Share editable state across a feature, with selectors and optimistic updates | `createContextState` | [State](docs/state.md) |
+| Translate UI text with compile-time checks and switch language instantly | `defineLocale`, `createTranslatorHook` | [Translations](docs/translation.md) |
+| Notify or ask mounted components elsewhere in the app and collect their answers | `createEventMethod` | [Events](docs/events.md) |
+| Compare, clone or cache values; pick slots from `children` | `@khanglvm/react/helpers` | [Helpers](docs/helpers.md) |
+| Know what runs in server and client components | | [Next.js App Router](docs/nextjs.md) |
+
+The utilities also fit together: the translation guide keeps the current language in a `createContextState` store.
+
+Two small example apps run the same profile editor: typed translations with a language switcher, a store with an optimistic save that rolls back on failure, and an event that lets the editor veto a reset.
+
+- [React with Vite](examples/react-vite)
+- [Next.js App Router](examples/nextjs-app-router): language from a cookie, server-rendered text and metadata, server data seeding a client store.
+<!-- docs:end -->
+
+## Install
+
+<!-- docs:begin install.md -->
+Install the package from npm. It needs React 18 or 19.
+
 ```sh
 npm install @khanglvm/react
 ```
 
-Requires React 18 or 19. The package ships ES modules with TypeScript declarations, and Immer is its only dependency.
-
-## Pick a tool
-
-| You need to | Use | Guide |
-| --- | --- | --- |
-| Share editable state across a feature, with selectors and optimistic updates | `createContextState` | [State](https://github.com/khanglvm/react/blob/master/docs/state.md) |
-| Translate UI text with compile-time checks and switch language instantly | `defineLocale`, `createTranslatorHook` | [Translations](https://github.com/khanglvm/react/blob/master/docs/translation.md) |
-| Notify or ask mounted components elsewhere in the app and collect their answers | `createEventMethod` | [Events](https://github.com/khanglvm/react/blob/master/docs/events.md) |
-| Compare, clone or cache values; pick slots from `children` | `@khanglvm/react/helpers` | [Helpers](https://github.com/khanglvm/react/blob/master/docs/helpers.md) |
-| Know what runs in server and client components | | [Next.js App Router](https://github.com/khanglvm/react/blob/master/docs/nextjs.md) |
-
-Each utility works on its own. They also fit together: the translation guide keeps the current language in a `createContextState` store.
+The package ships ES modules with TypeScript declarations, and Immer is its only dependency. In Next.js App Router, files that use the hooks need `'use client'` at the top; the [Next.js guide](docs/nextjs.md) lists what runs where.
+<!-- docs:end -->
 
 ## Shared state in one file
 
@@ -96,26 +109,23 @@ function SaveButton() {
 
 When `useLanguage` returns a new value, every component using these hooks rerenders in that language. The [translation guide](https://github.com/khanglvm/react/blob/master/docs/translation.md) builds the language store, then wires it up for Vite (saved in `localStorage`) and for Next.js (cookie, server components, `generateMetadata`).
 
-## Examples
-
-Two small apps run the same profile editor: typed translations with a language switcher, a store with an optimistic save that rolls back on failure, and an event that lets the editor veto a reset.
-
-- [React with Vite](https://github.com/khanglvm/react/tree/master/examples/react-vite)
-- [Next.js App Router](https://github.com/khanglvm/react/tree/master/examples/nextjs-app-router): language from a cookie, server-rendered text and metadata, server data seeding a client store.
-
 ## For AI coding agents
 
+<!-- docs:begin agents.md -->
 The repository includes an agent skill with the setup recipes, API rules and known pitfalls. Install it into your project with:
 
 ```sh
 npx skills add khanglvm/react
 ```
 
-The skill also ships in the npm package at `node_modules/@khanglvm/react/skills/khanglvm-react/SKILL.md`, next to the guides in `node_modules/@khanglvm/react/docs/`, so an agent can read the docs that match the installed version. [`llms.txt`](https://github.com/khanglvm/react/blob/master/llms.txt) indexes them.
+The skill also ships in the npm package at `node_modules/@khanglvm/react/skills/khanglvm-react/SKILL.md`, next to the guides in `node_modules/@khanglvm/react/docs/`, so an agent can read the docs that match the installed version. `llms.txt` in the package indexes them.
 
 If you don't install the skill, point the agent at the copy in the package:
 
 > Read node_modules/@khanglvm/react/skills/khanglvm-react/SKILL.md and follow it. Then add an English/Vietnamese language switcher to this Next.js app using @khanglvm/react, with the language stored in a cookie.
+
+Every guide is also online as plain text: [docs.khangle.dev/react/llms-full.txt](https://docs.khangle.dev/react/llms-full.txt) holds all of them in one file.
+<!-- docs:end -->
 
 ## Older names
 

@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "index",
+    "install",
+    "---Guides---",
+    "state",
+    "translation",
+    "events",
+    "nextjs",
+    "helpers",
+    "---For agents---",
+    "agents"
+  ]
+}
