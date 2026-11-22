@@ -17,6 +17,7 @@ Source is in `src/libs` (one file per utility) and `src/helpers`. `src/index.ts`
 - README sections between `<!-- docs:begin PAGE -->` and `<!-- docs:end -->` are generated. Edit the page in `docs/`, then run `node scripts/docs-readme.mjs`.
 - Run `node scripts/docs-readme.mjs --check` before committing. CI runs the same check.
 - Do not move or rename a published page without updating `docs/meta.json` and links to it.
+- A change is finished when GitHub, docs.khangle.dev and the npm page all show it (the `doc-sync` workflow). npm shows the README of the latest published version only, so a change to README.md ships with a patch release: bump `version` in `package.json`, add the CHANGELOG entry and push to `master`; the publish workflow ships it. Then run `node scripts/docs-surfaces.mjs` until it exits 0.
 
 Guides quote the example apps; keep the two in step. Write docs for a reader who arrives at one heading from search: lead with what to do, show code that compiles, and state limits as facts. Each page opens with an H1 and a one or two sentence summary, which the site uses as its description. Use plain ASCII punctuation (no em dashes).
 

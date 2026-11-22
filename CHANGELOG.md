@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Ship the current README, docs and `llms.txt`, so the npm page matches GitHub and docs.khangle.dev, which now publishes the guides.
+
 ## 1.3.0
 
 Fixes that change behavior. Check the first two items when you upgrade.
