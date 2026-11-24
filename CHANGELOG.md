@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2
+
+- Requires `refract-state` ^1.1.0. A controlled input that reads from a `createContextState` store now keeps its caret while you type in the middle of the text. Stores without a post-flush callback notify subscribers on every update; React still renders several updates in one event handler once. See the [Refract 1.1.0 notes](https://github.com/khanglvm/refract/blob/main/CHANGELOG.md#110).
+
 ## 1.4.1
 
 - Docs only: the README now says what Refract gives `createContextState`: rerenders limited to components whose selected value changed, nested updates without spreading, and an undo function per update.

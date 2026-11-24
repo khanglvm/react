@@ -1,6 +1,6 @@
 {
   "name": "@khanglvm/react",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "React utilities for shared state with selectors and rollback, typed translations with instant language switching, and async events between components. Works with React and Next.js App Router.",
   "type": "module",
   "main": "./dist/index.js",
@@ -100,6 +100,6 @@
   },
   "dependencies": {
     "immer": "^10.1.1",
-    "refract-state": "^1.0.0"
+    "refract-state": "^1.1.0"
   }
 }
