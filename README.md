@@ -3,7 +3,7 @@
 <!-- docs:begin index.md -->
 React utilities for TypeScript apps in React or Next.js App Router, each one usable on its own.
 
-- Shared state with selectors, Immer updates and an undo function per update.
+- Shared state with selectors, Immer updates and an undo function per update, from [Refract](https://github.com/khanglvm/refract).
 - Typed translations: dictionaries checked by the compiler, translator hooks, and instant language switching without a page reload.
 - Async events between components that don't know each other, with typed answers.
 - Helpers for deep equality, cloning, stable references and React children.
@@ -37,7 +37,7 @@ Install the package from npm. It needs React 18 or 19.
 npm install @khanglvm/react
 ```
 
-The package ships ES modules with TypeScript declarations, and Immer is its only dependency. In Next.js App Router, files that use the hooks need `'use client'` at the top; the [Next.js guide](docs/nextjs.md) lists what runs where.
+The package ships ES modules with TypeScript declarations, and depends on `refract-state` (the state engine) and Immer. In Next.js App Router, files that use the hooks need `'use client'` at the top; the [Next.js guide](docs/nextjs.md) lists what runs where.
 <!-- docs:end -->
 
 ## Shared state in one file
@@ -118,7 +118,7 @@ The repository includes an agent skill with the setup recipes, API rules and kno
 npx skills add khanglvm/react
 ```
 
-The skill also ships in the npm package at `node_modules/@khanglvm/react/skills/khanglvm-react/SKILL.md`, next to the guides in `node_modules/@khanglvm/react/docs/`, so an agent can read the docs that match the installed version. `llms.txt` in the package indexes them.
+The skill also ships in the npm package at `node_modules/@khanglvm/react/skills/khanglvm-react/SKILL.md`, next to the guides in `node_modules/@khanglvm/react/docs/`, so an agent can read the docs that match the installed version. `llms.txt` in the package indexes them. The state guides ship with Refract in `node_modules/refract-state/docs/`.
 
 If you don't install the skill, point the agent at the copy in the package:
 

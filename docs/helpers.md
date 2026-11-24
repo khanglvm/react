@@ -8,7 +8,7 @@ Import these through `@khanglvm/react/helpers`; they are not exported from the p
 
 ### deepClone(value, cache?)
 
-Use this when copying a nested value with the same rules the state utility uses for partial updates. It handles cycles, arrays, plain objects, Date, RegExp, Map, Set, ArrayBuffer and typed arrays. Functions, AbortSignal, and FormData are retained by reference. An optional WeakMap tracks copies during recursion.
+Use this when copying a nested value with the same rules the state engine uses for partial updates; Refract keeps its own copy of this function. It handles cycles, arrays, plain objects, Date, RegExp, Map, Set, ArrayBuffer and typed arrays. Functions, AbortSignal, and FormData are retained by reference. An optional WeakMap tracks copies during recursion.
 
 Any other object type throws `Unsupported type`, including Error, Promise, WeakMap, WeakSet, URL and Blob. A class instance is copied as a plain object, so its methods and prototype are lost.
 
@@ -57,7 +57,7 @@ clear(group)
 
 `cache(value, entryId, ...groupKeys)` returns the earlier value when `deepEqual` says they match. `clear(...groupKeys)` removes a group path; `uid()` returns a new symbol. All equality limitations above apply. A cached `undefined` counts as empty, so the next call stores its value without comparing.
 
-A typical use is a selector for an external store that maps raw data into a new object on every read: passing the result through `cache` returns the same reference while the content is unchanged, which `useSyncExternalStore` requires to avoid rerendering in a loop. The state utility uses it this way for selected values.
+A typical use is a selector for an external store that maps raw data into a new object on every read: passing the result through `cache` returns the same reference while the content is unchanged, which `useSyncExternalStore` requires to avoid rerendering in a loop. Refract's copy of this function does this for selected values.
 
 There is no whole-cache clear: `clear()` with no keys does nothing. Supplying a factory ID fixes the entry ID, but its bound `clear()` does not reliably remove the resulting entry. Prefer the unbound factory with explicit groups, as above, and clear groups when their owner is done. Skip this helper when a stable reference or React `useMemo` already solves the problem.
 

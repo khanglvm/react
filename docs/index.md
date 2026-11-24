@@ -2,7 +2,7 @@
 
 React utilities for TypeScript apps in React or Next.js App Router, each one usable on its own.
 
-- Shared state with selectors, Immer updates and an undo function per update.
+- Shared state with selectors, Immer updates and an undo function per update, from [Refract](https://github.com/khanglvm/refract).
 - Typed translations: dictionaries checked by the compiler, translator hooks, and instant language switching without a page reload.
 - Async events between components that don't know each other, with typed answers.
 - Helpers for deep equality, cloning, stable references and React children.

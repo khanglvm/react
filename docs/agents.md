@@ -6,7 +6,7 @@ The repository includes an agent skill with the setup recipes, API rules and kno
 npx skills add khanglvm/react
 ```
 
-The skill also ships in the npm package at `node_modules/@khanglvm/react/skills/khanglvm-react/SKILL.md`, next to the guides in `node_modules/@khanglvm/react/docs/`, so an agent can read the docs that match the installed version. `llms.txt` in the package indexes them.
+The skill also ships in the npm package at `node_modules/@khanglvm/react/skills/khanglvm-react/SKILL.md`, next to the guides in `node_modules/@khanglvm/react/docs/`, so an agent can read the docs that match the installed version. `llms.txt` in the package indexes them. The state guides ship with Refract in `node_modules/refract-state/docs/`.
 
 If you don't install the skill, point the agent at the copy in the package:
 

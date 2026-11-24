@@ -78,7 +78,7 @@ function ProfileForm() {
 }
 ```
 
-The handler can change between renders; the hook always calls the latest one, so it sees current props. Read store state through the store's snapshot getter ([state guide, section 5](state.md#5-read-the-latest-state-in-handlers)) so async handlers see current values too.
+The handler can change between renders; the hook always calls the latest one, so it sees current props. Read store state through the store's snapshot getter ([Refract: read the latest state in handlers](https://docs.khangle.dev/refract/updates#read-the-latest-state-in-handlers)) so async handlers see current values too.
 
 ## 3. Emit a notification
 

@@ -1,6 +1,6 @@
 # @khanglvm/react
 
-> React utilities for TypeScript apps in React or Next.js App Router: shared state with selectors, Immer updates and per-update revert (createContextState); typed translations with compile-time checked dictionaries and instant language switching (defineLocale, assertTranslation, createTranslatorHook); async events between unrelated mounted components with typed answers (createEventMethod); and equality, clone, cache and React children helpers (@khanglvm/react/helpers). React 18 or 19, ES modules, Immer as the only dependency.
+> React utilities for TypeScript apps in React or Next.js App Router: shared state with selectors, Immer updates and per-update revert (createContextState, re-exported from Refract, npm refract-state); typed translations with compile-time checked dictionaries and instant language switching (defineLocale, assertTranslation, createTranslatorHook); async events between unrelated mounted components with typed answers (createEventMethod); and equality, clone, cache and React children helpers (@khanglvm/react/helpers). React 18 or 19, ES modules, depends on refract-state and Immer.
 
 Hosted docs: https://docs.khangle.dev/react (all pages as one file: https://docs.khangle.dev/react/llms-full.txt).
 
@@ -12,7 +12,8 @@ Inside an installed project the guides, the skill and this file are at node_modu
 
 ## Guides
 
-- [State](https://raw.githubusercontent.com/khanglvm/react/master/docs/state.md): createContextState, selectors, updates, snapshots, optimistic revert, seeding from server data, post-flush
+- [State](https://raw.githubusercontent.com/khanglvm/react/master/docs/state.md): createContextState re-exported from Refract, when to import refract-state directly, createStateManager names, links to the Refract guides
+- [Refract docs](https://github.com/khanglvm/refract/blob/main/llms.txt): selectors, updates, snapshots, optimistic revert, seeding from server data, scopes, post-flush, Next.js, API
 - [Translations](https://raw.githubusercontent.com/khanglvm/react/master/docs/translation.md): dictionaries, translator hooks, language store, Vite and Next.js setup, interpolation rules
 - [Events](https://raw.githubusercontent.com/khanglvm/react/master/docs/events.md): createEventMethod, notifications, requests, vetoes, abort signal, error semantics
 - [Next.js App Router](https://raw.githubusercontent.com/khanglvm/react/master/docs/nextjs.md): what runs in server and client components, file layout, troubleshooting

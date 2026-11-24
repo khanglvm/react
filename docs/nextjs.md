@@ -60,6 +60,8 @@ export default async function Page() {
 - The Provider reads `initialState` once. A later `router.refresh()` re-renders the server component with new props, and the mounted store ignores them, so edits survive. Use `key` to remount when you want the new data.
 - Put app-wide Providers in `app/layout.tsx` and route-group Providers in the group's `layout.tsx`. Layout state survives navigation between child routes.
 
+Refract's [Next.js guide](https://docs.khangle.dev/refract/nextjs) covers the store in the App Router in more detail.
+
 ## Language switching without a reload
 
 The [translation guide](translation.md#9-set-up-a-nextjs-app-router-app) has the full setup. In short: the root layout reads a `lang` cookie and seeds the language store; client components translate through hooks and switch as soon as the store changes; server components translate with `createTranslator` and pick up the change after `router.refresh()`.

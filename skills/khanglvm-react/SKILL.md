@@ -1,6 +1,6 @@
 ---
 name: khanglvm-react
-description: Set up and use @khanglvm/react in React or Next.js App Router apps. Use when code imports @khanglvm/react, or a task needs typed translations with instant language switching (defineLocale, assertTranslation, createTranslatorHook), shared feature state with selectors, Immer updates and rollback (createContextState), or async events between unrelated components (createEventMethod).
+description: Set up and use @khanglvm/react in React or Next.js App Router apps. Use when code imports @khanglvm/react, or a task needs typed translations with instant language switching (defineLocale, assertTranslation, createTranslatorHook), shared feature state with selectors, Immer updates and rollback (createContextState, re-exported from Refract), or async events between unrelated components (createEventMethod).
 license: MIT
 ---
 
@@ -11,6 +11,7 @@ Four independent utilities: `createContextState` (shared state), `defineLocale` 
 | Task | Guide (installed) | Guide (online) |
 | --- | --- | --- |
 | Shared state | `node_modules/@khanglvm/react/docs/state.md` | https://github.com/khanglvm/react/blob/master/docs/state.md |
+| Shared state, full guides (Refract) | `node_modules/refract-state/docs/` (start at `index.md`) | https://github.com/khanglvm/refract/tree/main/docs |
 | Translations, language switching | `node_modules/@khanglvm/react/docs/translation.md` | https://github.com/khanglvm/react/blob/master/docs/translation.md |
 | Events | `node_modules/@khanglvm/react/docs/events.md` | https://github.com/khanglvm/react/blob/master/docs/events.md |
 | Next.js server/client boundaries | `node_modules/@khanglvm/react/docs/nextjs.md` | https://github.com/khanglvm/react/blob/master/docs/nextjs.md |
@@ -57,7 +58,7 @@ Seed with `initialState` (Next.js: from a server component, serializable data). 
 
 ## Rules that prevent the usual bugs
 
-State (`createContextState`):
+State (`createContextState`, re-exported unchanged from Refract, npm `refract-state`):
 
 - Call the factory at module level. Rename hooks per feature. Use a distinct instance ID per store, or none.
 - `initialState` is read once on mount; prop changes are ignored. Remount with `key` to reset. Provide every field.

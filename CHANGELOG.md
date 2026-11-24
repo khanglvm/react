@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+- `createContextState` moved to [Refract](https://github.com/khanglvm/refract) (`refract-state` ^1.0.0), and this package re-exports it. The API and behavior are the same, and `import { createContextState } from '@khanglvm/react'` and the `@khanglvm/react/createContextState` subpath keep working.
+- `refract-state` is a new dependency.
+- `createStateManager` stays in this package, still deprecated.
+
 ## 1.3.1
 
 - Ship the current README, docs and `llms.txt`, so the npm page matches GitHub and docs.khangle.dev, which now publishes the guides.

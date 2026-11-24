@@ -37,7 +37,7 @@ export default defineConfig({
       formats: ['es']
     },
     rollupOptions: {
-      external: (id) => id === 'immer' || /^(react|react-dom)(\/|$)/.test(id),
+      external: (id) => id === 'refract-state' || /^(react|react-dom)(\/|$)/.test(id),
       output: {
         banner: (chunk) => isClientEntry(chunk.facadeModuleId ?? '')
           ? '"use client";'
