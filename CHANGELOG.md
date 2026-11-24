@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- Docs only: the README now says what Refract gives `createContextState`: rerenders limited to components whose selected value changed, nested updates without spreading, and an undo function per update.
+
 ## 1.4.0
 
 - `createContextState` moved to [Refract](https://github.com/khanglvm/refract) (`refract-state` ^1.0.0), and this package re-exports it. The API and behavior are the same, and `import { createContextState } from '@khanglvm/react'` and the `@khanglvm/react/createContextState` subpath keep working.
